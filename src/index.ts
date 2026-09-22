@@ -15,7 +15,7 @@
 import { Hono } from "hono";
 import { getConfig, TOOLS } from "./config";
 import { landingPage } from "./web/landing";
-import { x402 } from "./x402";
+import { x402v2 } from "./x402";
 
 export interface Env {
   X402_NETWORK?: string;
@@ -158,7 +158,47 @@ app.use("/api/*", async (c, next) => {
       503
     );
   }
-  return x402(cfg)(c, next);
+  return x402v2(cfg)(c, next);
+});
+
+/* ------------------------------------------------------------------ */
+/*  Paid tool handlers (after successful payment)                      */
+/* ------------------------------------------------------------------ */
+
+app.post("/api/web-markdown", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const url = body.url;
+  if (!url) return c.json({ error: "url required" }, 400);
+  const r = await fetch(url);
+  const html = await r.text();
+  // simple conversion: strip scripts/styles, keep text
+  const md = html
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return c.json({ url, markdown: md });
+});
+
+app.post("/api/url-metadata", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const url = body.url;
+  if (!url) return c.json({ error: "url required" }, 400);
+  const r = await fetch(url);
+  const html = await r.text();
+  const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim() ?? null;
+  const desc = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)?.[1] ?? null;
+  const favicon = html.match(/<link[^>]+rel=["'][^"']*icon[^"']*["'][^>]+href=["']([^"']+)["']/i)?.[1] ?? null;
+  return c.json({ url, title, description: desc, favicon });
+});
+
+app.post("/api/token-counter", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const text = body.text ?? "";
+  // rough estimate: ~4 chars per token
+  const tokens = Math.ceil(text.length / 4);
+  return c.json({ text_length: text.length, estimated_tokens: tokens });
 });
 
 /* ------------------------------------------------------------------ */

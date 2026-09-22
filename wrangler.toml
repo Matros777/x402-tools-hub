@@ -13,7 +13,7 @@ head_sampling_rate = 1
 [vars]
 # Public configuration (no secrets here!)
 X402_NETWORK = "base"
-X402_FACILITATOR_URL = "https://x402.org/facilitator"
+X402_FACILITATOR_URL = "https://facilitator.xpay.sh"
 SITE_NAME = "x402 Tools Hub"
 # SITE_URL is provided by Cloudflare at deploy time (workers.dev).
 # Do NOT hardcode a custom domain here.
