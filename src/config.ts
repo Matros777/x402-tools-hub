@@ -73,6 +73,14 @@ export const TOOLS: Record<string, ToolPricing> = {
     freeForHumans: true,
     category: "text",
   },
+  "encoder-hub": {
+    path: "/api/encoder-hub",
+    priceUsd: 0.0005,
+    description: "Base64, URL, HTML entities, hex, binary and JWT segment encode/decode.",
+    icon: "&",
+    freeForHumans: true,
+    category: "text",
+  },
 };
 
 /** Payment + network configuration (values come from worker env vars). */

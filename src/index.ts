@@ -21,6 +21,7 @@ import { tokenCounterPage } from "./web/tools/token-counter";
 import { webMarkdownPage } from "./web/tools/web-markdown";
 import { urlMetadataPage } from "./web/tools/url-metadata";
 import { regexMentorPage } from "./web/tools/regex-mentor";
+import { encoderHubPage } from "./web/tools/encoder-hub";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -63,6 +64,7 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "web-markdown": webMarkdownPage,
   "url-metadata": urlMetadataPage,
   "regex-mentor": regexMentorPage,
+  "encoder-hub": encoderHubPage,
 };
 
 app.get("/tools/:name", (c) => {
@@ -352,6 +354,95 @@ app.post("/api/regex-mentor", async (c) => {
   }
 
   return c.json({ ok: true, pattern, flags, count: matches.length, matches });
+});
+
+// Server-side encoder for agents. Supports base64, base64url, url, html,
+// hex, binary and jwt (base64url). Mirrors the browser Encoder Hub page.
+app.post("/api/encoder-hub", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const codec = typeof body.codec === "string" ? body.codec : "base64";
+  const mode = body.mode === "decode" ? "decode" : "encode";
+  const value = body.value;
+  if (typeof value !== "string") {
+    return c.json({ error: "value (string) required" }, 400);
+  }
+
+  const b64Encode = (s: string) => {
+    const bytes = new TextEncoder().encode(s);
+    let bin = "";
+    for (const b of bytes) bin += String.fromCharCode(b);
+    return btoa(bin);
+  };
+  const b64Decode = (s: string) => {
+    const bin = atob(s.replace(/\s+/g, ""));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  };
+  const b64UrlEncode = (s: string) =>
+    b64Encode(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const b64UrlDecode = (s: string) => {
+    let t = s.replace(/-/g, "+").replace(/_/g, "/").replace(/\s+/g, "");
+    while (t.length % 4) t += "=";
+    return b64Decode(t);
+  };
+  const hexEncode = (s: string) => {
+    const bytes = new TextEncoder().encode(s);
+    return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+  };
+  const hexDecode = (s: string) => {
+    const t = s.replace(/\s+|0x/gi, "");
+    if (t.length % 2) throw new Error("hex length must be even");
+    const bytes = new Uint8Array(t.length / 2);
+    for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(t.substr(i * 2, 2), 16);
+    return new TextDecoder().decode(bytes);
+  };
+  const binEncode = (s: string) => {
+    const bytes = new TextEncoder().encode(s);
+    return Array.from(bytes).map((b) => b.toString(2).padStart(8, "0")).join(" ");
+  };
+  const binDecode = (s: string) => {
+    const bits = s.replace(/[^01]/g, "");
+    if (bits.length % 8) throw new Error("binary length must be a multiple of 8");
+    const bytes = new Uint8Array(bits.length / 8);
+    for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(bits.substr(i * 8, 8), 2);
+    return new TextDecoder().decode(bytes);
+  };
+  const htmlEncode = (s: string) =>
+    s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  const htmlDecode = (s: string) =>
+    s
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+
+  const table: Record<string, { encode: (s: string) => string; decode: (s: string) => string }> = {
+    base64: { encode: b64Encode, decode: b64Decode },
+    base64url: { encode: b64UrlEncode, decode: b64UrlDecode },
+    url: { encode: encodeURIComponent, decode: decodeURIComponent },
+    html: { encode: htmlEncode, decode: htmlDecode },
+    hex: { encode: hexEncode, decode: hexDecode },
+    binary: { encode: binEncode, decode: binDecode },
+    jwt: { encode: b64UrlEncode, decode: b64UrlDecode },
+  };
+
+  const fn = table[codec] && table[codec][mode];
+  if (!fn) return c.json({ error: "unknown codec/mode" }, 400);
+
+  try {
+    const result = fn(value);
+    return c.json({ ok: true, codec, mode, result, length: result.length });
+  } catch (e) {
+    return c.json({ ok: false, error: String((e as Error).message) }, 400);
+  }
 });
 
 /* ------------------------------------------------------------------ */
