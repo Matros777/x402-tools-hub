@@ -164,6 +164,30 @@ export const TOOLS: Record<string, ToolPricing> = {
     freeForHumans: true,
     category: "color",
   },
+  "unit-converter": {
+    path: "/api/unit-converter",
+    priceUsd: 0.0005,
+    description: "Convert length, weight, volume, temperature, area, speed and data units.",
+    icon: "⇄",
+    freeForHumans: true,
+    category: "convert",
+  },
+  "git-explainer": {
+    path: "/api/git-explainer",
+    priceUsd: 0.0005,
+    description: "Plain-English explanations for git commands and error messages.",
+    icon: "⑂",
+    freeForHumans: true,
+    category: "git",
+  },
+  "meta-tags": {
+    path: "/api/meta-tags",
+    priceUsd: 0.0005,
+    description: "Generate SEO, OpenGraph and Twitter Card meta tags with live preview.",
+    icon: "⊕",
+    freeForHumans: true,
+    category: "seo",
+  },
 };
 
 /** Payment + network configuration (values come from worker env vars). */

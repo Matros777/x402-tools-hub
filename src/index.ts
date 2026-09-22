@@ -27,6 +27,9 @@ import { timeToolkitPage } from "./web/tools/time-toolkit";
 import { envStudioPage } from "./web/tools/env-studio";
 import { hashStudioPage } from "./web/tools/hash-studio";
 import { colorPalettePage } from "./web/tools/color-palette";
+import { unitConverterPage } from "./web/tools/unit-converter";
+import { gitExplainerPage } from "./web/tools/git-explainer";
+import { metaTagsPage } from "./web/tools/meta-tags";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -75,6 +78,9 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "env-studio": envStudioPage,
   "hash-studio": hashStudioPage,
   "color-palette": colorPalettePage,
+  "unit-converter": unitConverterPage,
+  "git-explainer": gitExplainerPage,
+  "meta-tags": metaTagsPage,
 };
 
 app.get("/tools/:name", (c) => {
@@ -778,6 +784,96 @@ app.post("/api/color-palette", async (c) => {
       on_black: onBlack, on_black_aa: onBlack >= 4.5, on_black_aaa: onBlack >= 7,
     },
   });
+});
+
+// Server-side Unit Converter for agents. Length/weight/volume/area/speed/data
+// via factors; temperature via offsets. Mirrors the browser page.
+const _UC_FACTORS: Record<string, Record<string, number>> = {
+  length: { nm: 1e-9, um: 1e-6, mm: 1e-3, cm: 1e-2, m: 1, km: 1000, in: 0.0254, ft: 0.3048, yd: 0.9144, mi: 1609.344, nmi: 1852 },
+  weight: { ug: 1e-9, mg: 1e-6, g: 1e-3, kg: 1, t: 1000, oz: 0.028349523125, lb: 0.45359237, st: 6.35029318 },
+  volume: { ml: 1e-3, l: 1, m3: 1000, tsp: 0.00492892159375, tbsp: 0.01478676478125, floz: 0.0295735295625, cup: 0.2365882365, pt: 0.473176473, qt: 0.946352946, gal: 3.785411784, gal_uk: 4.54609 },
+  area: { mm2: 1e-6, cm2: 1e-4, m2: 1, km2: 1e6, in2: 0.00064516, ft2: 0.09290304, yd2: 0.83612736, acre: 4046.8564224, ha: 10000 },
+  speed: { ms: 1, kmh: 1/3.6, mph: 0.44704, knot: 0.514444444, fts: 0.3048, mach: 340.29 },
+  data: { bit: 0.125, byte: 1, kb: 1e3, kib: 1024, mb: 1e6, mib: 1048576, gb: 1e9, gib: 1073741824, tb: 1e12, tib: 1099511627776 },
+};
+app.post("/api/unit-converter", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const category = typeof body.category === "string" ? body.category : "length";
+  const from = typeof body.from === "string" ? body.from : "";
+  const to = typeof body.to === "string" ? body.to : "";
+  const value = typeof body.value === "number" ? body.value : Number(body.value);
+  if (!isFinite(value) || !from || !to) {
+    return c.json({ error: "value (number), from (string) and to (string) required" }, 400);
+  }
+  let result: number | null = null;
+  if (category === "temperature") {
+    const toC = (v: number, u: string) => u === "celsius" ? v : u === "fahrenheit" ? (v - 32) * 5 / 9 : u === "kelvin" ? v - 273.15 : NaN;
+    const fromC = (v: number, u: string) => u === "celsius" ? v : u === "fahrenheit" ? v * 9 / 5 + 32 : u === "kelvin" ? v + 273.15 : NaN;
+    result = fromC(toC(value, from), to);
+  } else {
+    const tbl = _UC_FACTORS[category];
+    if (!tbl || tbl[from] === undefined || tbl[to] === undefined) {
+      return c.json({ error: "unknown category or unit", category, from, to }, 400);
+    }
+    result = value * tbl[from]! / tbl[to]!;
+  }
+  if (result === null || !isFinite(result)) {
+    return c.json({ error: "cannot convert" }, 400);
+  }
+  return c.json({ ok: true, category, from, to, value, result });
+});
+
+// Server-side Git Explainer for agents. NOTE: the full dictionary lives in the
+// browser page; the API accepts the input and echoes it with a hint.
+app.post("/api/git-explainer", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const text = typeof body.text === "string" ? body.text : "";
+  if (!text) {
+    return c.json({ error: "text (string) required" }, 400);
+  }
+  return c.json({
+    ok: true,
+    input: text,
+    note: "Full git command/error dictionary is available in the browser page; the API returns input echo only.",
+  });
+});
+
+// Server-side Meta Tags generator for agents. Builds SEO + OpenGraph +
+// Twitter Card tags from a title/description/url/image tuple.
+app.post("/api/meta-tags", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const title = typeof body.title === "string" ? body.title : "";
+  const desc = typeof body.description === "string" ? body.description : "";
+  const url = typeof body.url === "string" ? body.url : "";
+  const image = typeof body.image === "string" ? body.image : "";
+  const type = typeof body.type === "string" ? body.type : "website";
+  const twitter = typeof body.twitterCard === "string" ? body.twitterCard : "summary_large_image";
+  if (!title) {
+    return c.json({ error: "title (string) required" }, 400);
+  }
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const lines: string[] = [];
+  lines.push(`<title>${esc(title)}</title>`);
+  if (desc) lines.push(`<meta name="description" content="${esc(desc)}">`);
+  if (url) lines.push(`<link rel="canonical" href="${esc(url)}">`);
+  lines.push(`<meta property="og:title" content="${esc(title)}">`);
+  if (desc) lines.push(`<meta property="og:description" content="${esc(desc)}">`);
+  lines.push(`<meta property="og:type" content="${esc(type)}">`);
+  if (url) lines.push(`<meta property="og:url" content="${esc(url)}">`);
+  if (image) lines.push(`<meta property="og:image" content="${esc(image)}">`);
+  lines.push(`<meta name="twitter:card" content="${esc(twitter)}">`);
+  lines.push(`<meta name="twitter:title" content="${esc(title)}">`);
+  if (desc) lines.push(`<meta name="twitter:description" content="${esc(desc)}">`);
+  if (image) lines.push(`<meta name="twitter:image" content="${esc(image)}">`);
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: title,
+    description: desc,
+    ...(url ? { url } : {}),
+    ...(image ? { image } : {}),
+  };
+  return c.json({ ok: true, html: lines.join("\n"), jsonLd });
 });
 
 /* ------------------------------------------------------------------ */
