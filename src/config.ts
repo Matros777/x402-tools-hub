@@ -14,6 +14,10 @@ export interface ToolPricing {
   icon: string;
   /** Whether the web form is free for humans */
   freeForHumans: boolean;
+  /** Grouping on the landing page */
+  category?: "web" | "data" | "crypto" | "time" | "text";
+  /** Override the default /tools/{name} URL */
+  webPath?: string;
 }
 
 /**
@@ -27,6 +31,7 @@ export const TOOLS: Record<string, ToolPricing> = {
     description: "Convert any public web page into clean, readable Markdown.",
     icon: "~",
     freeForHumans: true,
+    category: "web",
   },
   "url-metadata": {
     path: "/api/url-metadata",
@@ -34,6 +39,7 @@ export const TOOLS: Record<string, ToolPricing> = {
     description: "Extract title, description, OpenGraph tags and favicon from a URL.",
     icon: "#",
     freeForHumans: true,
+    category: "web",
   },
   "token-counter": {
     path: "/api/token-counter",
@@ -41,6 +47,15 @@ export const TOOLS: Record<string, ToolPricing> = {
     description: "Count LLM tokens for a given text and model family.",
     icon: "T",
     freeForHumans: true,
+    category: "text",
+  },
+  "json-studio": {
+    path: "/api/json-studio",
+    priceUsd: 0.001,
+    description: "Format, minify, validate, query and diff JSON locally in the browser.",
+    icon: "{",
+    freeForHumans: true,
+    category: "data",
   },
 };
 

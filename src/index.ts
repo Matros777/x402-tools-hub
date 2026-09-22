@@ -15,6 +15,7 @@
 import { Hono } from "hono";
 import { getConfig, TOOLS } from "./config";
 import { landingPage } from "./web/landing";
+import { jsonStudioPage } from "./web/tools/json-studio";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -48,12 +49,21 @@ app.get("/health", (c) =>
 /*  Tool pages (HTML, free for humans)                                 */
 /* ------------------------------------------------------------------ */
 
+// Registry of tools that have a dedicated client-side page renderer.
+const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> = {
+  "json-studio": jsonStudioPage,
+};
+
 app.get("/tools/:name", (c) => {
   const name = c.req.param("name");
   const tool = TOOLS[name];
   if (!tool) return c.notFound();
   const cfg = getConfig(c.env);
-  // TODO: render tool-page.ts
+
+  const renderer = TOOL_PAGES[name];
+  if (renderer) return c.html(renderer(cfg));
+
+  // Fallback for tools that don't yet have a custom page
   return c.html(
     `<!DOCTYPE html><html lang="en"><head>` +
       `<meta charset="utf-8">` +
@@ -199,6 +209,30 @@ app.post("/api/token-counter", async (c) => {
   // rough estimate: ~4 chars per token
   const tokens = Math.ceil(text.length / 4);
   return c.json({ text_length: text.length, estimated_tokens: tokens });
+});
+
+// Server-side JSON formatter for agents. Mirrors the browser JSON Studio:
+// format / minify / validate. Query and diff stay browser-only for now.
+app.post("/api/json-studio", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const raw = body.json;
+  if (typeof raw !== "string") return c.json({ error: "json (string) required" }, 400);
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    return c.json({ ok: false, error: String((e as Error).message) }, 400);
+  }
+
+  const mode = body.mode === "minify" ? "minify" : "format";
+  const indentRaw = body.indent ?? 2;
+  const indent = indentRaw === "tab" || indentRaw === "\t" ? "\t" : Number(indentRaw);
+
+  const result =
+    mode === "minify" ? JSON.stringify(parsed) : JSON.stringify(parsed, null, indent);
+
+  return c.json({ ok: true, mode, result });
 });
 
 /* ------------------------------------------------------------------ */
