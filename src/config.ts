@@ -81,6 +81,14 @@ export const TOOLS: Record<string, ToolPricing> = {
     freeForHumans: true,
     category: "text",
   },
+  "diff-pro": {
+    path: "/api/diff-pro",
+    priceUsd: 0.0005,
+    description: "Line-level text diff with unified and side-by-side views.",
+    icon: "±",
+    freeForHumans: true,
+    category: "text",
+  },
 };
 
 /** Payment + network configuration (values come from worker env vars). */

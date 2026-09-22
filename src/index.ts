@@ -22,6 +22,7 @@ import { webMarkdownPage } from "./web/tools/web-markdown";
 import { urlMetadataPage } from "./web/tools/url-metadata";
 import { regexMentorPage } from "./web/tools/regex-mentor";
 import { encoderHubPage } from "./web/tools/encoder-hub";
+import { diffProPage } from "./web/tools/diff-pro";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -65,6 +66,7 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "url-metadata": urlMetadataPage,
   "regex-mentor": regexMentorPage,
   "encoder-hub": encoderHubPage,
+  "diff-pro": diffProPage,
 };
 
 app.get("/tools/:name", (c) => {
@@ -443,6 +445,114 @@ app.post("/api/encoder-hub", async (c) => {
   } catch (e) {
     return c.json({ ok: false, error: String((e as Error).message) }, 400);
   }
+});
+
+// Server-side diff for agents. Mirrors the browser Diff Pro page:
+// computes line-level LCS and returns unified diff + stats.
+app.post("/api/diff-pro", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const a = body.a;
+  const b = body.b;
+  if (typeof a !== "string" || typeof b !== "string") {
+    return c.json({ error: "a (string) and b (string) required" }, 400);
+  }
+
+  const ignoreWs = body.ignoreWhitespace === true;
+  const ignoreCase = body.ignoreCase === true;
+
+  const rawA: string[] = a.split("\n");
+  const rawB: string[] = b.split("\n");
+  const norm = (line: string) => {
+    let t = line;
+    if (ignoreWs) t = t.replace(/\s+/g, " ").trim();
+    if (ignoreCase) t = t.toLowerCase();
+    return t;
+  };
+  const A: string[] = rawA.map(norm);
+  const B: string[] = rawB.map(norm);
+
+  const n = A.length, m = B.length;
+  const dp: Int32Array[] = new Array(n + 1);
+  for (let i = 0; i <= n; i++) dp[i] = new Int32Array(m + 1);
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i]![j] = A[i] === B[j]
+        ? dp[i + 1]![j + 1]! + 1
+        : Math.max(dp[i + 1]![j]!, dp[i]![j + 1]!);
+    }
+  }
+
+  type Op = { type: "keep" | "del" | "ins"; a: number; b: number };
+  const ops: Op[] = [];
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (A[i] === B[j]) { ops.push({ type: "keep", a: i, b: j }); i++; j++; }
+    else if (dp[i + 1]![j]! >= dp[i]![j + 1]!) { ops.push({ type: "del", a: i, b: -1 }); i++; }
+    else { ops.push({ type: "ins", a: -1, b: j }); j++; }
+  }
+  while (i < n) { ops.push({ type: "del", a: i, b: -1 }); i++; }
+  while (j < m) { ops.push({ type: "ins", a: -1, b: j }); j++; }
+
+  let added = 0, removed = 0, unchanged = 0;
+  for (const op of ops) {
+    if (op.type === "ins") added++;
+    else if (op.type === "del") removed++;
+    else unchanged++;
+  }
+
+  // Build unified diff with ±3 context lines (git-style).
+  const ctx = 3;
+  const hunks: Op[][] = [];
+  let cur: Op[] | null = null;
+  let startK = 0;
+  let sinceChange = 1e9;
+  for (let k = 0; k < ops.length; k++) {
+    const op = ops[k];
+    if (!op) continue;
+    const changed = op.type !== "keep";
+    if (changed) {
+      if (!cur) {
+        startK = Math.max(0, k - ctx);
+        cur = [];
+      }
+      while (cur.length + startK < k) {
+        const fill = ops[startK + cur.length];
+        if (!fill) break;
+        cur.push(fill);
+      }
+      cur.push(op);
+      sinceChange = 0;
+    } else if (cur) {
+      sinceChange++;
+      if (sinceChange <= ctx) cur.push(op);
+      else { hunks.push(cur); cur = null; sinceChange = 1e9; }
+    }
+  }
+  if (cur) hunks.push(cur);
+
+  const unifiedLines: string[] = [];
+  for (const hunk of hunks) {
+    let aStart = 1, aCount = 0, bStart = 1, bCount = 0;
+    let firstA = true, firstB = true;
+    for (const op of hunk) {
+      if (op.a >= 0) { if (firstA) { aStart = op.a + 1; firstA = false; } aCount++; }
+      if (op.b >= 0) { if (firstB) { bStart = op.b + 1; firstB = false; } bCount++; }
+    }
+    unifiedLines.push("@@ -" + aStart + "," + aCount + " +" + bStart + "," + bCount + " @@");
+    for (const op of hunk) {
+      if (op.type === "keep") unifiedLines.push(" " + (rawA[op.a] ?? ""));
+      else if (op.type === "del") unifiedLines.push("-" + (rawA[op.a] ?? ""));
+      else unifiedLines.push("+" + (rawB[op.b] ?? ""));
+    }
+  }
+
+  const unified = unifiedLines.join("\n") || "(no differences)";
+
+  return c.json({
+    ok: true,
+    stats: { added, removed, unchanged, hunks: hunks.length },
+    unified,
+  });
 });
 
 /* ------------------------------------------------------------------ */
