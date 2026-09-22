@@ -140,6 +140,30 @@ export const TOOLS: Record<string, ToolPricing> = {
     freeForHumans: true,
     category: "time",
   },
+  "env-studio": {
+    path: "/api/env-studio",
+    priceUsd: 0.001,
+    description: "Parse .env files, mask secrets and convert to JSON, YAML, docker-compose or shell.",
+    icon: "=",
+    freeForHumans: true,
+    category: "data",
+  },
+  "hash-studio": {
+    path: "/api/hash-studio",
+    priceUsd: 0.0005,
+    description: "Compute MD5, SHA-1, SHA-256, SHA-384 and SHA-512 hashes locally.",
+    icon: "#",
+    freeForHumans: true,
+    category: "crypto",
+  },
+  "color-palette": {
+    path: "/api/color-palette",
+    priceUsd: 0.0005,
+    description: "Palette generator with HEX/RGB/HSL, WCAG contrast and CSS/Tailwind export.",
+    icon: "◆",
+    freeForHumans: true,
+    category: "color",
+  },
 };
 
 /** Payment + network configuration (values come from worker env vars). */

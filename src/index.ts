@@ -24,6 +24,9 @@ import { regexMentorPage } from "./web/tools/regex-mentor";
 import { encoderHubPage } from "./web/tools/encoder-hub";
 import { diffProPage } from "./web/tools/diff-pro";
 import { timeToolkitPage } from "./web/tools/time-toolkit";
+import { envStudioPage } from "./web/tools/env-studio";
+import { hashStudioPage } from "./web/tools/hash-studio";
+import { colorPalettePage } from "./web/tools/color-palette";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -69,6 +72,9 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "encoder-hub": encoderHubPage,
   "diff-pro": diffProPage,
   "time-toolkit": timeToolkitPage,
+  "env-studio": envStudioPage,
+  "hash-studio": hashStudioPage,
+  "color-palette": colorPalettePage,
 };
 
 app.get("/tools/:name", (c) => {
@@ -631,6 +637,146 @@ app.post("/api/time-toolkit", async (c) => {
     timezone: tz,
     local,
     relative,
+  });
+});
+
+// Server-side Env Studio for agents. Parses .env text into key/value pairs,
+// reports duplicates and returns the requested representation. Mirrors the
+// browser Env Studio page.
+app.post("/api/env-studio", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const text = body.env ?? body.text ?? body.value;
+  if (typeof text !== "string") {
+    return c.json({ error: "env (string) required" }, 400);
+  }
+  const format = typeof body.format === "string" ? body.format : "json";
+
+  const pairs: Array<{ key: string; value: string; duplicate: boolean }> = [];
+  const seen = new Set<string>();
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const eq = line.indexOf("=");
+    if (eq === -1) continue;
+    const key = line.slice(0, eq).trim();
+    let value = line.slice(eq + 1).trim();
+    const q = value.charAt(0);
+    if (q === '"' || q === "'") {
+      const end = value.indexOf(q, 1);
+      value = end === -1 ? value.slice(1) : value.slice(1, end);
+    } else {
+      const hash = value.indexOf(" #");
+      if (hash !== -1) value = value.slice(0, hash).trim();
+    }
+    const duplicate = seen.has(key);
+    seen.add(key);
+    pairs.push({ key, value, duplicate });
+  }
+
+  const obj: Record<string, string> = {};
+  for (const p of pairs) obj[p.key] = p.value;
+
+  let result: string;
+  if (format === "yaml") {
+    result = pairs
+      .map((p) => p.key + ": " + (/[:#\-{}\[\],&*!|>'"%@`]/.test(p.value) || p.value === "" ? JSON.stringify(p.value) : p.value))
+      .join("\n");
+  } else if (format === "docker") {
+    result = "services:\n  app:\n    environment:\n" + pairs.map((p) => "      - " + p.key + "=" + p.value).join("\n");
+  } else if (format === "shell") {
+    result = pairs.map((p) => "export " + p.key + "=" + JSON.stringify(p.value)).join("\n");
+  } else {
+    result = JSON.stringify(obj, null, 2);
+  }
+
+  return c.json({ ok: true, format, count: pairs.length, pairs, result });
+});
+
+// Server-side Hash Studio for agents. Returns hex digests for the
+// requested algorithms. MD5 is not available in WebCrypto (Workers
+// too), so only SHA family is served here. Mirrors the browser page.
+app.post("/api/hash-studio", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const text = body.text ?? body.value;
+  if (typeof text !== "string") {
+    return c.json({ error: "text (string) required" }, 400);
+  }
+  const wanted = Array.isArray(body.algorithms) && body.algorithms.length
+    ? body.algorithms
+    : ["SHA-1", "SHA-256", "SHA-384", "SHA-512"];
+  const allowed = ["SHA-1", "SHA-256", "SHA-384", "SHA-512"];
+  const algos = wanted.filter((a: unknown) => typeof a === "string" && allowed.includes(a));
+  if (!algos.length) {
+    return c.json({ error: "no supported algorithms requested", allowed }, 400);
+  }
+
+  const data = new TextEncoder().encode(text);
+  const result: Record<string, string> = {};
+  for (const alg of algos) {
+    const buf = await crypto.subtle.digest(alg, data);
+    result[alg] = Array.from(new Uint8Array(buf))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  }
+  return c.json({ ok: true, length: text.length, hashes: result, note: "MD5 not available server-side" });
+});
+
+// Server-side Color Palette for agents. Computes a 10-step shade ramp
+// from a base color and reports WCAG contrast against white and black.
+// Mirrors the browser Color Palette Studio page.
+app.post("/api/color-palette", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const hex = typeof body.hex === "string" ? body.hex : "#10e0a0";
+  const m = hex.trim().match(/^#?([0-9a-fA-F]{6})$/);
+  if (!m) {
+    return c.json({ error: "hex must be a #rrggbb string" }, 400);
+  }
+  const base = {
+    r: parseInt(m[1]!.slice(0, 2), 16),
+    g: parseInt(m[1]!.slice(2, 4), 16),
+    b: parseInt(m[1]!.slice(4, 6), 16),
+  };
+  const toHex = (c: { r: number; g: number; b: number }) =>
+    "#" + [c.r, c.g, c.b].map((v) => v.toString(16).padStart(2, "0")).join("");
+  const mix = (a: typeof base, b: typeof base, t: number) => ({
+    r: Math.round(a.r + (b.r - a.r) * t),
+    g: Math.round(a.g + (b.g - a.g) * t),
+    b: Math.round(a.b + (b.b - a.b) * t),
+  });
+  const shades = [
+    ["50",  mix(base, { r: 255, g: 255, b: 255 }, 0.92)],
+    ["100", mix(base, { r: 255, g: 255, b: 255 }, 0.80)],
+    ["200", mix(base, { r: 255, g: 255, b: 255 }, 0.60)],
+    ["300", mix(base, { r: 255, g: 255, b: 255 }, 0.35)],
+    ["400", mix(base, { r: 255, g: 255, b: 255 }, 0.10)],
+    ["500", base],
+    ["600", mix(base, { r: 0, g: 0, b: 0 }, 0.15)],
+    ["700", mix(base, { r: 0, g: 0, b: 0 }, 0.30)],
+    ["800", mix(base, { r: 0, g: 0, b: 0 }, 0.55)],
+    ["900", mix(base, { r: 0, g: 0, b: 0 }, 0.75)],
+  ];
+  const palette = shades.map(([name, col]) => ({ name, hex: toHex(col as typeof base) }));
+
+  const lum = (c: typeof base) => {
+    const ch = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    return 0.2126 * ch(c.r) + 0.7152 * ch(c.g) + 0.0722 * ch(c.b);
+  };
+  const ratio = (a: typeof base, b: typeof base) => {
+    const la = lum(a), lb = lum(b);
+    const hi = Math.max(la, lb), lo = Math.min(la, lb);
+    return +((hi + 0.05) / (lo + 0.05)).toFixed(2);
+  };
+  const onWhite = ratio(base, { r: 255, g: 255, b: 255 });
+  const onBlack = ratio(base, { r: 0, g: 0, b: 0 });
+
+  return c.json({
+    ok: true,
+    base: toHex(base),
+    palette,
+    contrast: {
+      on_white: onWhite, on_white_aa: onWhite >= 4.5, on_white_aaa: onWhite >= 7,
+      on_black: onBlack, on_black_aa: onBlack >= 4.5, on_black_aaa: onBlack >= 7,
+    },
   });
 });
 
