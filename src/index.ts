@@ -16,6 +16,7 @@ import { Hono } from "hono";
 import { getConfig, TOOLS } from "./config";
 import { landingPage } from "./web/landing";
 import { jsonStudioPage } from "./web/tools/json-studio";
+import { explainGit } from "./web/tools/git-dict";
 import { jwtInspectorPage } from "./web/tools/jwt-inspector";
 import { tokenCounterPage } from "./web/tools/token-counter";
 import { webMarkdownPage } from "./web/tools/web-markdown";
@@ -831,10 +832,13 @@ app.post("/api/git-explainer", async (c) => {
   if (!text) {
     return c.json({ error: "text (string) required" }, 400);
   }
+  const results = explainGit(text);
   return c.json({
     ok: true,
     input: text,
-    note: "Full git command/error dictionary is available in the browser page; the API returns input echo only.",
+    count: results.length,
+    matched: results.filter((r) => r.matched).length,
+    results,
   });
 });
 
