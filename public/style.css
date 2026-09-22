@@ -718,3 +718,132 @@ section { padding: 72px 0; }
 }
 
 .tree:empty, .out:empty { display: none; }
+
+/* ================================================================== */
+/*  JWT INSPECTOR                                                      */
+/* ================================================================== */
+
+/* ---------- timeline (iat / nbf / exp) --------------------------- */
+
+.timeline { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 6px; }
+
+.tl-row {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-hi);
+  border-radius: 10px;
+  background: rgba(12,18,16,.5);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+.tl-label { color: var(--accent-hi); font-weight: 600; }
+
+.tl-val { color: #c8dbd4; }
+
+.tl-note { color: #8fa39c; text-align: right; white-space: nowrap; }
+
+.tl-ok      { border-color: rgba(16,224,160,.45); background: rgba(16,224,160,.06); }
+.tl-warn    { border-color: rgba(255,180,84,.45); background: rgba(255,180,84,.06); }
+.tl-err     { border-color: rgba(255,110,110,.5); background: rgba(255,110,110,.07); }
+.tl-neutral { border-color: var(--border-hi); }
+
+.tl-ok    .tl-note { color: var(--accent-hi); }
+.tl-warn  .tl-note { color: var(--amber); }
+.tl-err   .tl-note { color: #ff8080; }
+
+.tl-empty {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: #7c8f88;
+  padding: 10px 12px;
+  border: 1px dashed var(--border-hi);
+  border-radius: 10px;
+}
+
+/* ---------- three decode panels side by side --------------------- */
+
+.jwt-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+/* ---------- security audit --------------------------------------- */
+
+.audit { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 4px; }
+
+.audit-head {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--border-hi);
+  margin-bottom: 4px;
+}
+
+.audit-head.audit-ok   { color: var(--accent-hi); border-color: rgba(16,224,160,.45); background: rgba(16,224,160,.07); }
+.audit-head.audit-warn { color: var(--amber);     border-color: rgba(255,180,84,.45); background: rgba(255,180,84,.07); }
+.audit-head.audit-err  { color: #ff8080;          border-color: rgba(255,110,110,.5); background: rgba(255,110,110,.08); }
+
+.audit-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 7px 11px;
+  border-radius: 9px;
+  border: 1px solid var(--border-hi);
+  background: rgba(12,18,16,.45);
+  color: #c8dbd4;
+}
+
+.audit-item.audit-ok   { border-color: rgba(16,224,160,.28); }
+.audit-item.audit-warn { border-color: rgba(255,180,84,.32); }
+.audit-item.audit-err  { border-color: rgba(255,110,110,.38); }
+
+.audit-item span { flex: 1; }
+
+/* ---------- explain claims --------------------------------------- */
+
+.explain { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 2px; }
+
+.explain-row {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  grid-template-areas: "key val" "doc doc";
+  gap: 4px 14px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-hi);
+  border-radius: 9px;
+  background: rgba(12,18,16,.4);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+.explain-row code {
+  grid-area: key;
+  color: var(--accent-hi);
+  background: transparent;
+  padding: 0;
+}
+
+.explain-val { grid-area: val; color: #d9ebe4; word-break: break-all; }
+
+.explain-doc { grid-area: doc; color: #8fa39c; font-size: 11.5px; line-height: 1.5; }
+
+@media (max-width: 640px) {
+  .explain-row { grid-template-columns: 1fr; grid-template-areas: "key" "val" "doc"; }
+}
+
+/* ---------- verify signature grid -------------------------------- */
+
+.verify-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+
+.editor-sm { min-height: 110px; }

@@ -57,6 +57,14 @@ export const TOOLS: Record<string, ToolPricing> = {
     freeForHumans: true,
     category: "data",
   },
+  "jwt-inspector": {
+    path: "/api/jwt-inspector",
+    priceUsd: 0.001,
+    description: "Decode, audit, verify and diff JSON Web Tokens locally in the browser.",
+    icon: "\u00A7",
+    freeForHumans: true,
+    category: "crypto",
+  },
 };
 
 /** Payment + network configuration (values come from worker env vars). */
