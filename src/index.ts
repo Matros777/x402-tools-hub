@@ -23,6 +23,7 @@ import { urlMetadataPage } from "./web/tools/url-metadata";
 import { regexMentorPage } from "./web/tools/regex-mentor";
 import { encoderHubPage } from "./web/tools/encoder-hub";
 import { diffProPage } from "./web/tools/diff-pro";
+import { timeToolkitPage } from "./web/tools/time-toolkit";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -67,6 +68,7 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "regex-mentor": regexMentorPage,
   "encoder-hub": encoderHubPage,
   "diff-pro": diffProPage,
+  "time-toolkit": timeToolkitPage,
 };
 
 app.get("/tools/:name", (c) => {
@@ -552,6 +554,83 @@ app.post("/api/diff-pro", async (c) => {
     ok: true,
     stats: { added, removed, unchanged, hunks: hunks.length },
     unified,
+  });
+});
+
+// Server-side Time Toolkit for agents. Parses unix seconds/ms, ISO 8601,
+// RFC 2822 and simple relative expressions; converts into a target time zone.
+// Mirrors the browser Time Toolkit page.
+app.post("/api/time-toolkit", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const input = body.input ?? body.value ?? body.date;
+  if (input === undefined || input === null) {
+    return c.json({ error: "input required (unix seconds/ms, ISO 8601, or relative like 'in 2 days')" }, 400);
+  }
+
+  const now = new Date();
+  let d: Date | null = null;
+  const unitMap: Record<string, number> = {
+    second: 1000, minute: 60000, hour: 3600000,
+    day: 86400000, week: 604800000, month: 2592000000, year: 31536000000,
+  };
+
+  if (typeof input === "number") {
+    d = new Date(input < 1e12 ? input * 1000 : input);
+  } else if (typeof input === "string") {
+    const str = input.trim();
+    let m: RegExpMatchArray | null = null;
+    if (/^[0-9]+$/.test(str)) {
+      const n = Number(str);
+      d = new Date(n < 1e12 ? n * 1000 : n);
+    } else if ((m = str.match(/^(?:in +)?([0-9]+) +(second|minute|hour|day|week|month|year)s?(?: +(?:from now|ahead))?$/i))) {
+      d = new Date(now.getTime() + Number(m[1]) * unitMap[m[2]!.toLowerCase()]!);
+    } else if ((m = str.match(/^([0-9]+) +(second|minute|hour|day|week|month|year)s? +ago$/i))) {
+      d = new Date(now.getTime() - Number(m[1]) * unitMap[m[2]!.toLowerCase()]!);
+    } else {
+      const parsed = new Date(str);
+      if (!isNaN(parsed.getTime())) d = parsed;
+    }
+  }
+
+  if (!d || isNaN(d.getTime())) {
+    return c.json({ ok: false, error: "cannot parse input" }, 400);
+  }
+
+  const tz = typeof body.timezone === "string" ? body.timezone : "UTC";
+  let local: string | null = null;
+  try {
+    local = new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+    }).format(d);
+  } catch {
+    local = null;
+  }
+
+  const diff = d.getTime() - now.getTime();
+  const abs = Math.abs(diff);
+  const units: Array<[Intl.RelativeTimeFormatUnit, number]> = [
+    ["year", 31536000000], ["month", 2592000000], ["day", 86400000],
+    ["hour", 3600000], ["minute", 60000], ["second", 1000],
+  ];
+  let relative = "now";
+  for (const [u, ms] of units) {
+    if (abs >= ms || u === "second") {
+      relative = new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(Math.round(diff / ms), u);
+      break;
+    }
+  }
+
+  return c.json({
+    ok: true,
+    input,
+    iso: d.toISOString(),
+    unix: Math.floor(d.getTime() / 1000),
+    unix_ms: d.getTime(),
+    utc: d.toUTCString(),
+    timezone: tz,
+    local,
+    relative,
   });
 });
 

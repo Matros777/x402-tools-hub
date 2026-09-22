@@ -89,6 +89,14 @@ export const TOOLS: Record<string, ToolPricing> = {
     freeForHumans: true,
     category: "text",
   },
+  "time-toolkit": {
+    path: "/api/time-toolkit",
+    priceUsd: 0.0005,
+    description: "Convert Unix, ISO, RFC 2822 and natural-language dates; time zones and durations.",
+    icon: "◷",
+    freeForHumans: true,
+    category: "time",
+  },
 };
 
 /** Payment + network configuration (values come from worker env vars). */
