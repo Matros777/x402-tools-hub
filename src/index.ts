@@ -16,6 +16,7 @@ import { Hono } from "hono";
 import { getConfig, TOOLS } from "./config";
 import { landingPage } from "./web/landing";
 import { jsonStudioPage } from "./web/tools/json-studio";
+import { jwtInspectorPage } from "./web/tools/jwt-inspector";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -52,6 +53,7 @@ app.get("/health", (c) =>
 // Registry of tools that have a dedicated client-side page renderer.
 const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> = {
   "json-studio": jsonStudioPage,
+  "jwt-inspector": jwtInspectorPage,
 };
 
 app.get("/tools/:name", (c) => {
@@ -233,6 +235,65 @@ app.post("/api/json-studio", async (c) => {
     mode === "minify" ? JSON.stringify(parsed) : JSON.stringify(parsed, null, indent);
 
   return c.json({ ok: true, mode, result });
+});
+
+// Server-side JWT decoder for agents. Decodes header + payload and reports
+// basic temporal claims (exp/nbf/iat). Signature verification is intentionally
+// NOT performed here — agents that need to verify should do it locally, the
+// same way the browser page does via WebCrypto.
+app.post("/api/jwt-inspector", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const token = body.token;
+  if (typeof token !== "string" || !token) {
+    return c.json({ error: "token (string) required" }, 400);
+  }
+
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    return c.json({ ok: false, error: "not a JWT (expected 3 dot-separated parts)" }, 400);
+  }
+
+  const decodeSegment = (seg: string): unknown => {
+    // base64url → base64 → utf-8
+    const b64 = seg.replace(/-/g, "+").replace(/_/g, "/");
+    const pad = b64.length % 4 === 0 ? "" : "=".repeat(4 - (b64.length % 4));
+    const bin = atob(b64 + pad);
+    const bytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0));
+    const json = new TextDecoder().decode(bytes);
+    return JSON.parse(json);
+  };
+
+  let header: unknown;
+  let payload: unknown;
+  try {
+    header = decodeSegment(parts[0]!);
+    payload = decodeSegment(parts[1]!);
+  } catch (e) {
+    return c.json({ ok: false, error: "failed to decode: " + String((e as Error).message) }, 400);
+  }
+
+  const claims: Record<string, unknown> = {};
+  const now = Math.floor(Date.now() / 1000);
+  const pl = payload as Record<string, unknown>;
+  if (typeof pl?.exp === "number") {
+    claims.exp = pl.exp;
+    claims.expired = pl.exp < now;
+    claims.expires_in = pl.exp - now;
+  }
+  if (typeof pl?.nbf === "number") {
+    claims.nbf = pl.nbf;
+    claims.not_before = pl.nbf > now;
+  }
+  if (typeof pl?.iat === "number") claims.iat = pl.iat;
+
+  return c.json({
+    ok: true,
+    header,
+    payload,
+    signature: parts[2],
+    claims,
+    note: "signature not verified (no secret/key provided)",
+  });
 });
 
 /* ------------------------------------------------------------------ */
