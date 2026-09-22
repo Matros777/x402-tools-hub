@@ -1,7 +1,50 @@
 /**
  * x402 Tools Hub — central configuration
  * Cyber Jade palette, Cloudflare Workers + Hono
+ *
+ * 100+ tools roadmap: see PLAN-100-TOOLS.md at the repo root.
  */
+
+/**
+ * Tool categories, ordered exactly as they render in the sidebar and landing.
+ * Keep CATEGORY_ORDER and ToolCategory in sync.
+ */
+export const CATEGORY_ORDER = [
+  "data",
+  "text",
+  "encode",
+  "crypto",
+  "web",
+  "regex",
+  "time",
+  "color",
+  "convert",
+  "devops",
+  "git",
+  "ai",
+  "security",
+  "seo",
+] as const;
+
+export type ToolCategory = (typeof CATEGORY_ORDER)[number];
+
+/** Human-readable labels for the sidebar / landing sections. */
+export const CATEGORY_LABELS: Record<ToolCategory, string> = {
+  data: "Data",
+  text: "Text",
+  encode: "Encode / Decode",
+  crypto: "Crypto",
+  web: "Web / HTTP",
+  regex: "Regex",
+  time: "Time",
+  color: "Color / Design",
+  convert: "Converters",
+  devops: "DevOps",
+  git: "Git",
+  ai: "AI / LLM",
+  security: "Security",
+  seo: "SEO / Meta",
+};
 
 export interface ToolPricing {
   /** Path to invoke the tool, e.g. /api/web-markdown */
@@ -14,8 +57,8 @@ export interface ToolPricing {
   icon: string;
   /** Whether the web form is free for humans */
   freeForHumans: boolean;
-  /** Grouping on the landing page */
-  category?: "web" | "data" | "crypto" | "time" | "text";
+  /** Grouping on the landing page and sidebar */
+  category?: ToolCategory;
   /** Override the default /tools/{name} URL */
   webPath?: string;
 }
@@ -47,7 +90,7 @@ export const TOOLS: Record<string, ToolPricing> = {
     description: "Count LLM tokens for a given text and model family.",
     icon: "T",
     freeForHumans: true,
-    category: "text",
+    category: "ai",
   },
   "json-studio": {
     path: "/api/json-studio",
@@ -63,7 +106,7 @@ export const TOOLS: Record<string, ToolPricing> = {
     description: "Decode, audit, verify and diff JSON Web Tokens locally in the browser.",
     icon: "J",
     freeForHumans: true,
-    category: "crypto",
+    category: "security",
   },
   "regex-mentor": {
     path: "/api/regex-mentor",
@@ -71,7 +114,7 @@ export const TOOLS: Record<string, ToolPricing> = {
     description: "Test, debug and explain regular expressions with highlighted matches.",
     icon: "/",
     freeForHumans: true,
-    category: "text",
+    category: "regex",
   },
   "encoder-hub": {
     path: "/api/encoder-hub",
@@ -79,7 +122,7 @@ export const TOOLS: Record<string, ToolPricing> = {
     description: "Base64, URL, HTML entities, hex, binary and JWT segment encode/decode.",
     icon: "&",
     freeForHumans: true,
-    category: "text",
+    category: "encode",
   },
   "diff-pro": {
     path: "/api/diff-pro",

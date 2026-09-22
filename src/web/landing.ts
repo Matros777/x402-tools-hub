@@ -55,7 +55,7 @@ export function landingPage(cfg: AppConfig): string {
     <div class="badge">x402 · ${cfg.network}</div>
     <h1 class="hero-title">Tools for humans.<br><span class="accent">Pay-per-call for agents.</span></h1>
     <p class="hero-sub">
-      Ten clean utilities with a free web form for people and a machine-payable
+      A growing collection of utilities with a free web form for people and a machine-payable
       API for AI agents. No accounts, no subscriptions — just x402 micropayments.
     </p>
     <div class="hero-cta">
