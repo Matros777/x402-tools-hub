@@ -17,6 +17,9 @@ import { getConfig, TOOLS } from "./config";
 import { landingPage } from "./web/landing";
 import { jsonStudioPage } from "./web/tools/json-studio";
 import { jwtInspectorPage } from "./web/tools/jwt-inspector";
+import { tokenCounterPage } from "./web/tools/token-counter";
+import { webMarkdownPage } from "./web/tools/web-markdown";
+import { urlMetadataPage } from "./web/tools/url-metadata";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -51,9 +54,13 @@ app.get("/health", (c) =>
 /* ------------------------------------------------------------------ */
 
 // Registry of tools that have a dedicated client-side page renderer.
+// Every tool gets a page — there are no API-only fallbacks left.
 const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> = {
   "json-studio": jsonStudioPage,
   "jwt-inspector": jwtInspectorPage,
+  "token-counter": tokenCounterPage,
+  "web-markdown": webMarkdownPage,
+  "url-metadata": urlMetadataPage,
 };
 
 app.get("/tools/:name", (c) => {
@@ -65,7 +72,7 @@ app.get("/tools/:name", (c) => {
   const renderer = TOOL_PAGES[name];
   if (renderer) return c.html(renderer(cfg));
 
-  // Fallback for tools that don't yet have a custom page
+  // Safety net: unknown tool still renders a minimal, styled page.
   return c.html(
     `<!DOCTYPE html><html lang="en"><head>` +
       `<meta charset="utf-8">` +
