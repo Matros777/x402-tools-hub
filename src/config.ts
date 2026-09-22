@@ -61,9 +61,17 @@ export const TOOLS: Record<string, ToolPricing> = {
     path: "/api/jwt-inspector",
     priceUsd: 0.001,
     description: "Decode, audit, verify and diff JSON Web Tokens locally in the browser.",
-    icon: "\u00A7",
+    icon: "J",
     freeForHumans: true,
     category: "crypto",
+  },
+  "regex-mentor": {
+    path: "/api/regex-mentor",
+    priceUsd: 0.001,
+    description: "Test, debug and explain regular expressions with highlighted matches.",
+    icon: "/",
+    freeForHumans: true,
+    category: "text",
   },
 };
 

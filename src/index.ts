@@ -20,6 +20,7 @@ import { jwtInspectorPage } from "./web/tools/jwt-inspector";
 import { tokenCounterPage } from "./web/tools/token-counter";
 import { webMarkdownPage } from "./web/tools/web-markdown";
 import { urlMetadataPage } from "./web/tools/url-metadata";
+import { regexMentorPage } from "./web/tools/regex-mentor";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -61,6 +62,7 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "token-counter": tokenCounterPage,
   "web-markdown": webMarkdownPage,
   "url-metadata": urlMetadataPage,
+  "regex-mentor": regexMentorPage,
 };
 
 app.get("/tools/:name", (c) => {
@@ -301,6 +303,55 @@ app.post("/api/jwt-inspector", async (c) => {
     claims,
     note: "signature not verified (no secret/key provided)",
   });
+});
+
+// Server-side regex tester for agents. Runs the pattern against the text
+// with the native RegExp engine and returns matches with groups. Same
+// semantics as the browser Regex Mentor page.
+app.post("/api/regex-mentor", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const pattern = body.pattern;
+  const text = body.text;
+  if (typeof pattern !== "string" || !pattern) {
+    return c.json({ error: "pattern (string) required" }, 400);
+  }
+  if (typeof text !== "string") {
+    return c.json({ error: "text (string) required" }, 400);
+  }
+
+  const rawFlags = typeof body.flags === "string" ? body.flags : "";
+  const flags = rawFlags.replace(/[^gimsuy]/g, "");
+
+  let re: RegExp;
+  try {
+    re = new RegExp(pattern, flags);
+  } catch (e) {
+    return c.json({ ok: false, error: String((e as Error).message) }, 400);
+  }
+
+  const matches: Array<{ value: string; index: number; groups: unknown[]; named: Record<string, string> | null }> = [];
+  const snap = (m: RegExpExecArray) => ({
+    value: m[0],
+    index: m.index,
+    groups: m.slice(1),
+    named: m.groups ?? null,
+  });
+
+  if (!re.global && !re.sticky) {
+    const m = re.exec(text);
+    if (m) matches.push(snap(m));
+  } else {
+    re.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    let guard = 0;
+    while ((m = re.exec(text)) !== null) {
+      matches.push(snap(m));
+      if (m[0] === "") re.lastIndex++;
+      if (++guard > 10000) break;
+    }
+  }
+
+  return c.json({ ok: true, pattern, flags, count: matches.length, matches });
 });
 
 /* ------------------------------------------------------------------ */
