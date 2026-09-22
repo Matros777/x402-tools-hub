@@ -1,0 +1,37 @@
+# Cloudflare Workers configuration
+# x402 Tools Hub — paid tools for AI agents, free tools for humans
+
+name = "x402-tools-hub"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Custom domain: tools.x402-ai-agent.space
+# Uncomment after first deploy and adding the route in CF dashboard:
+# routes = [
+#   { pattern = "tools.x402-ai-agent.space/*", zone_name = "x402-ai-agent.space" }
+# ]
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[vars]
+# Public configuration (no secrets here!)
+X402_NETWORK = "base"
+X402_FACILITATOR_URL = "https://x402.org/facilitator"
+SITE_NAME = "x402 Tools Hub"
+SITE_URL = "https://tools.x402-ai-agent.space"
+
+# SECRET — must NOT be committed or placed in [vars].
+# Local dev:  echo 'X402_PAY_TO="0xYourAddr"' >> .dev.vars
+# Production: wrangler secret put X402_PAY_TO
+
+[placement]
+mode = "smart"
+
+[limits]
+cpu_ms = 50
+[assets]
+directory = "./public"
+binding = "ASSETS"
