@@ -6,12 +6,6 @@ main = "src/index.ts"
 compatibility_date = "2025-09-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Custom domain: tools.x402-ai-agent.space
-# Uncomment after first deploy and adding the route in CF dashboard:
-# routes = [
-#   { pattern = "tools.x402-ai-agent.space/*", zone_name = "x402-ai-agent.space" }
-# ]
-
 [observability]
 enabled = true
 head_sampling_rate = 1
@@ -21,7 +15,8 @@ head_sampling_rate = 1
 X402_NETWORK = "base"
 X402_FACILITATOR_URL = "https://x402.org/facilitator"
 SITE_NAME = "x402 Tools Hub"
-SITE_URL = "https://tools.x402-ai-agent.space"
+# SITE_URL is provided by Cloudflare at deploy time (workers.dev).
+# Do NOT hardcode a custom domain here.
 
 # SECRET — must NOT be committed or placed in [vars].
 # Local dev:  echo 'X402_PAY_TO="0xYourAddr"' >> .dev.vars

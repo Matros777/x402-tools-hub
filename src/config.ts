@@ -68,6 +68,8 @@ export function getConfig(env: Record<string, string | undefined>): AppConfig {
     facilitatorUrl: env.X402_FACILITATOR_URL ?? "https://x402.org/facilitator",
     payTo: env.X402_PAY_TO,
     siteName: env.SITE_NAME ?? "x402 Tools Hub",
-    siteUrl: env.SITE_URL ?? "https://tools.x402-ai-agent.space",
+    // Fallback: the platform's own deploy domain (Cloudflare workers.dev).
+    // Env var SITE_URL (if set) always wins.
+    siteUrl: env.SITE_URL ?? "https://x402-tools-hub.matros777.workers.dev",
   };
 }
