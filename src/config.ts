@@ -188,6 +188,14 @@ export const TOOLS: Record<string, ToolPricing> = {
     freeForHumans: true,
     category: "seo",
   },
+  "wallet-intel": {
+    path: "/api/wallet-intel",
+    priceUsd: 0.001,
+    description: "Base wallet snapshot: ETH balance, top ERC-20 tokens, transfer history and a heuristic risk score.",
+    icon: "◎",
+    freeForHumans: true,
+    category: "crypto",
+  },
 };
 
 /** Payment + network configuration (values come from worker env vars). */
@@ -198,6 +206,8 @@ export interface AppConfig {
   payTo: string | undefined;
   siteName: string;
   siteUrl: string;
+  /** Alchemy Base mainnet JSON-RPC URL (secret; wallet-intel only). */
+  alchemyBaseUrl: string | undefined;
 }
 
 /**
@@ -217,5 +227,6 @@ export function getConfig(env: Record<string, string | undefined>): AppConfig {
     // Fallback: the platform's own deploy domain (Cloudflare workers.dev).
     // Env var SITE_URL (if set) always wins.
     siteUrl: env.SITE_URL ?? "https://x402-tools-hub.ivanbenks7-e96.workers.dev",
+    alchemyBaseUrl: env.ALCHEMY_BASE_URL,
   };
 }

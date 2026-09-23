@@ -31,6 +31,8 @@ import { colorPalettePage } from "./web/tools/color-palette";
 import { unitConverterPage } from "./web/tools/unit-converter";
 import { gitExplainerPage } from "./web/tools/git-explainer";
 import { metaTagsPage } from "./web/tools/meta-tags";
+import { walletIntelPage } from "./web/tools/wallet-intel";
+import { getWalletIntel, getWalletSnapshot, isValidEvmAddress, normalizeAddress } from "./wallet-intel-core";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -82,6 +84,7 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "unit-converter": unitConverterPage,
   "git-explainer": gitExplainerPage,
   "meta-tags": metaTagsPage,
+  "wallet-intel": walletIntelPage,
 };
 
 app.get("/tools/:name", (c) => {
@@ -180,6 +183,33 @@ app.get("/.well-known/agent.json", (c) => {
     payment: { protocol: "x402", network: cfg.network },
     tools: Object.keys(TOOLS),
   });
+});
+
+/* ------------------------------------------------------------------ */
+/*  Free wallet lookup (browser page, no x402)                         */
+/* ------------------------------------------------------------------ */
+
+// Free, rate-limited-by-nature endpoint for the Wallet Intel web page.
+// It is intentionally NOT present in the x402 TOOLS table, so the payment
+// middleware below leaves it open. Returns a basic snapshot only.
+app.post("/api/wallet-lookup", async (c) => {
+  const cfg = getConfig(c.env);
+  if (!cfg.alchemyBaseUrl) {
+    return c.json({ error: "wallet_lookup_not_configured", hint: "ALCHEMY_BASE_URL secret is missing" }, 503);
+  }
+  const body = await c.req.json().catch(() => ({}));
+  const raw = body.address;
+  if (!isValidEvmAddress(raw)) {
+    return c.json({ error: "address (0x + 40 hex) required" }, 400);
+  }
+  const address = normalizeAddress(raw);
+  try {
+    const snapshot = await getWalletSnapshot(cfg.alchemyBaseUrl, address);
+    return c.json({ ok: true, snapshot });
+  } catch (e) {
+    console.error("wallet-lookup error:", e);
+    return c.json({ ok: false, error: "lookup_failed" }, 502);
+  }
 });
 
 /* ------------------------------------------------------------------ */
@@ -878,6 +908,28 @@ app.post("/api/meta-tags", async (c) => {
     ...(image ? { image } : {}),
   };
   return c.json({ ok: true, html: lines.join("\n"), jsonLd });
+});
+
+// Paid, x402-protected deep tier: full wallet intel incl. history,
+// funding sources and a heuristic risk score.
+app.post("/api/wallet-intel", async (c) => {
+  const cfg = getConfig(c.env);
+  if (!cfg.alchemyBaseUrl) {
+    return c.json({ error: "wallet_intel_not_configured", hint: "ALCHEMY_BASE_URL secret is missing" }, 503);
+  }
+  const body = await c.req.json().catch(() => ({}));
+  const raw = body.address;
+  if (!isValidEvmAddress(raw)) {
+    return c.json({ error: "address (0x + 40 hex) required" }, 400);
+  }
+  const address = normalizeAddress(raw);
+  try {
+    const intel = await getWalletIntel(cfg.alchemyBaseUrl, address);
+    return c.json({ ok: true, intel });
+  } catch (e) {
+    console.error("wallet-intel error:", e);
+    return c.json({ ok: false, error: "intel_failed" }, 502);
+  }
 });
 
 /* ------------------------------------------------------------------ */
