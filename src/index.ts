@@ -33,6 +33,9 @@ import { gitExplainerPage } from "./web/tools/git-explainer";
 import { metaTagsPage } from "./web/tools/meta-tags";
 import { walletIntelPage } from "./web/tools/wallet-intel";
 import { getWalletIntel, getWalletSnapshot, isValidEvmAddress, normalizeAddress } from "./wallet-intel-core";
+import { flightRecorderPage } from "./web/tools/flight-recorder";
+import { agentPassportPage } from "./web/tools/agent-passport";
+import { getReceipts, getPassport } from "./trust-core";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -85,6 +88,8 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "git-explainer": gitExplainerPage,
   "meta-tags": metaTagsPage,
   "wallet-intel": walletIntelPage,
+  "flight-recorder": flightRecorderPage,
+  "agent-passport": agentPassportPage,
 };
 
 app.get("/tools/:name", (c) => {
@@ -208,6 +213,57 @@ app.post("/api/wallet-lookup", async (c) => {
     return c.json({ ok: true, snapshot });
   } catch (e) {
     console.error("wallet-lookup error:", e);
+    return c.json({ ok: false, error: "lookup_failed" }, 502);
+  }
+});
+
+/* ------------------------------------------------------------------ */
+/*  Free Trust Layer lookups (browser pages, no x402)                  */
+/* ------------------------------------------------------------------ */
+
+// Free lookup for the Flight Recorder page. Reads USDC receipts straight
+// from Base via Alchemy. Not present in the x402 TOOLS table, so the
+// payment middleware below leaves it open to humans.
+app.post("/api/flight-recorder/lookup", async (c) => {
+  const cfg = getConfig(c.env);
+  if (!cfg.alchemyBaseUrl) {
+    return c.json({ error: "trust_layer_not_configured", hint: "ALCHEMY_BASE_URL secret is missing" }, 503);
+  }
+  const body = await c.req.json().catch(() => ({}));
+  const raw = body.address;
+  if (!isValidEvmAddress(raw)) {
+    return c.json({ error: "address (0x + 40 hex) required" }, 400);
+  }
+  const address = normalizeAddress(raw);
+  const direction = body.direction === "out" ? "out" : "in";
+  const limit = Math.min(Math.max(Number(body.limit) || 50, 1), 200);
+  try {
+    const data = await getReceipts(cfg.alchemyBaseUrl, address, direction, limit);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("flight-recorder lookup error:", e);
+    return c.json({ ok: false, error: "lookup_failed" }, 502);
+  }
+});
+
+// Free lookup for the Agent Passport page. Aggregates outgoing USDC
+// payments into a 0-100 Trust Score. Also open to humans.
+app.post("/api/agent-passport/lookup", async (c) => {
+  const cfg = getConfig(c.env);
+  if (!cfg.alchemyBaseUrl) {
+    return c.json({ error: "trust_layer_not_configured", hint: "ALCHEMY_BASE_URL secret is missing" }, 503);
+  }
+  const body = await c.req.json().catch(() => ({}));
+  const raw = body.address;
+  if (!isValidEvmAddress(raw)) {
+    return c.json({ error: "address (0x + 40 hex) required" }, 400);
+  }
+  const address = normalizeAddress(raw);
+  try {
+    const data = await getPassport(cfg.alchemyBaseUrl, address);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("agent-passport lookup error:", e);
     return c.json({ ok: false, error: "lookup_failed" }, 502);
   }
 });
@@ -929,6 +985,56 @@ app.post("/api/wallet-intel", async (c) => {
   } catch (e) {
     console.error("wallet-intel error:", e);
     return c.json({ ok: false, error: "intel_failed" }, 502);
+  }
+});
+
+/* ------------------------------------------------------------------ */
+/*  Trust Layer — paid API (x402-protected, for agents)                */
+/* ------------------------------------------------------------------ */
+
+// Paid tier: raw USDC receipts for any address on Base.
+// POST { "address": "0x…", "direction": "in"|"out", "limit": 50 }
+app.post("/api/flight-recorder", async (c) => {
+  const cfg = getConfig(c.env);
+  if (!cfg.alchemyBaseUrl) {
+    return c.json({ error: "trust_layer_not_configured", hint: "ALCHEMY_BASE_URL secret is missing" }, 503);
+  }
+  const body = await c.req.json().catch(() => ({}));
+  const raw = body.address;
+  if (!isValidEvmAddress(raw)) {
+    return c.json({ error: "address (0x + 40 hex) required" }, 400);
+  }
+  const address = normalizeAddress(raw);
+  const direction = body.direction === "out" ? "out" : "in";
+  const limit = Math.min(Math.max(Number(body.limit) || 50, 1), 200);
+  try {
+    const receipts = await getReceipts(cfg.alchemyBaseUrl, address, direction, limit);
+    return c.json({ ok: true, receipts });
+  } catch (e) {
+    console.error("flight-recorder error:", e);
+    return c.json({ ok: false, error: "receipts_failed" }, 502);
+  }
+});
+
+// Paid tier: Agent Passport — reputation + Trust Score for a payer wallet.
+// POST { "address": "0x…" }
+app.post("/api/agent-passport", async (c) => {
+  const cfg = getConfig(c.env);
+  if (!cfg.alchemyBaseUrl) {
+    return c.json({ error: "trust_layer_not_configured", hint: "ALCHEMY_BASE_URL secret is missing" }, 503);
+  }
+  const body = await c.req.json().catch(() => ({}));
+  const raw = body.address;
+  if (!isValidEvmAddress(raw)) {
+    return c.json({ error: "address (0x + 40 hex) required" }, 400);
+  }
+  const address = normalizeAddress(raw);
+  try {
+    const passport = await getPassport(cfg.alchemyBaseUrl, address);
+    return c.json({ ok: true, passport });
+  } catch (e) {
+    console.error("agent-passport error:", e);
+    return c.json({ ok: false, error: "passport_failed" }, 502);
   }
 });
 

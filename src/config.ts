@@ -8,8 +8,12 @@
 /**
  * Tool categories, ordered exactly as they render in the sidebar and landing.
  * Keep CATEGORY_ORDER and ToolCategory in sync.
+ *
+ * "trust" is deliberately first: the Trust Layer (Flight Recorder + Agent
+ * Passport) is the hub's flagship feature and anchors the landing page.
  */
 export const CATEGORY_ORDER = [
+  "trust",
   "data",
   "text",
   "encode",
@@ -30,6 +34,7 @@ export type ToolCategory = (typeof CATEGORY_ORDER)[number];
 
 /** Human-readable labels for the sidebar / landing sections. */
 export const CATEGORY_LABELS: Record<ToolCategory, string> = {
+  trust: "Trust Layer",
   data: "Data",
   text: "Text",
   encode: "Encode / Decode",
@@ -68,6 +73,25 @@ export interface ToolPricing {
  * Keep this in sync with src/tools/index.ts handlers.
  */
 export const TOOLS: Record<string, ToolPricing> = {
+  /* ---------------- Trust Layer ---------------- */
+  "flight-recorder": {
+    path: "/api/flight-recorder",
+    priceUsd: 0.001,
+    description: "The black box for x402: inspect every USDC receipt an address got on Base.",
+    icon: "▶",
+    freeForHumans: true,
+    category: "trust",
+  },
+  "agent-passport": {
+    path: "/api/agent-passport",
+    priceUsd: 0.001,
+    description: "Reputation passport for x402 payer wallets: a 0-100 Trust Score from on-chain history.",
+    icon: "☰",
+    freeForHumans: true,
+    category: "trust",
+  },
+
+  /* ---------------- Core ---------------- */
   "web-markdown": {
     path: "/api/web-markdown",
     priceUsd: 0.001,
@@ -206,13 +230,14 @@ export interface AppConfig {
   payTo: string | undefined;
   siteName: string;
   siteUrl: string;
-  /** Alchemy Base mainnet JSON-RPC URL (secret; wallet-intel only). */
+  /** Alchemy Base mainnet JSON-RPC URL (secret; wallet-intel + trust layer). */
   alchemyBaseUrl: string | undefined;
 }
 
 /**
  * Reads configuration from the Worker environment.
- * Secrets (X402_PAY_TO) live in .dev.vars locally and via `wrangler secret put`.
+ * Secrets (X402_PAY_TO, ALCHEMY_BASE_URL) live in .dev.vars locally and via
+ * `wrangler secret put`.
  *
  * NOTE: there is intentionally NO fallback address. An unset X402_PAY_TO must
  * never silently settle to the zero address — the x402 middleware refuses to
