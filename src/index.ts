@@ -43,6 +43,7 @@ import { agentStudioPage } from "./web/tools/agent-studio";
 import { addressToolkitPage } from "./web/tools/address-toolkit";
 import { baseGasPage } from "./web/tools/base-gas";
 import { agentIntelPage } from "./web/tools/agent-intel";
+import { agentRoutePage } from "./web/tools/agent-route";
 import { simulateX402 } from "./simulate-core";
 import { getMerchantTrust } from "./merchant-core";
 import { getAgentRegistry } from "./registry-core";
@@ -50,6 +51,7 @@ import { dryRunAgent, type AgentInput } from "./agent-core";
 import { describeAddress } from "./address-core";
 import { getBaseGas } from "./gas-core";
 import { runAgentIntel, type AgentIntelInput } from "./agent-intel-core";
+import { routeTask, type RouteInput } from "./route-core";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -110,6 +112,7 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "agent-studio": agentStudioPage,
   "base-gas": baseGasPage,
   "agent-intel": agentIntelPage,
+  "agent-route": agentRoutePage,
   "address-toolkit": addressToolkitPage,
 };
 
@@ -417,6 +420,21 @@ app.post("/api/agent-intel/lookup", async (c) => {
     console.error("agent-intel lookup error:", e);
     return c.json({ ok: false, error: "intel_failed" }, 502);
   }
+});
+
+// Free lookup for the Agent Route page. Stateless: scores hub tools against a task.
+app.post("/api/agent-route/lookup", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const input: RouteInput = {
+    task: body.task === undefined ? undefined : String(body.task).slice(0, 400),
+    budget_usdc: body.budget_usdc === undefined ? undefined : Number(body.budget_usdc),
+    max_steps: body.max_steps === undefined ? undefined : Number(body.max_steps),
+    chain: body.chain === undefined ? undefined : String(body.chain),
+    mode: body.mode === undefined ? undefined : String(body.mode) as RouteInput["mode"],
+    wallet: body.wallet === undefined ? undefined : String(body.wallet),
+  };
+  const data = routeTask(input);
+  return c.json({ ok: true, data });
 });
 
 /* ------------------------------------------------------------------ */
@@ -1314,6 +1332,22 @@ app.post("/api/agent-intel", async (c) => {
     console.error("agent-intel error:", e);
     return c.json({ ok: false, error: "intel_failed" }, 502);
   }
+});
+
+// Paid tier: Agent Route — same payload as the free lookup, x402-protected.
+// POST { "task", "budget_usdc"?, "max_steps"?, "mode"?, "wallet"? }
+app.post("/api/agent-route", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const input: RouteInput = {
+    task: body.task === undefined ? undefined : String(body.task).slice(0, 400),
+    budget_usdc: body.budget_usdc === undefined ? undefined : Number(body.budget_usdc),
+    max_steps: body.max_steps === undefined ? undefined : Number(body.max_steps),
+    chain: body.chain === undefined ? undefined : String(body.chain),
+    mode: body.mode === undefined ? undefined : String(body.mode) as RouteInput["mode"],
+    wallet: body.wallet === undefined ? undefined : String(body.wallet),
+  };
+  const data = routeTask(input);
+  return c.json({ ok: true, data });
 });
 
 /* ------------------------------------------------------------------ */

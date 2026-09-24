@@ -263,6 +263,15 @@ export const TOOLS: Record<string, ToolPricing> = {
     category: "trust",
   },
 
+  "agent-route": {
+    path: "/api/agent-route",
+    priceUsd: 0.003,
+    description: "Agent Route: plan the optimal sequence of hub tools for a task, with budget check.",
+    icon: "⟳",
+    freeForHumans: true,
+    category: "trust",
+  },
+
   "address-toolkit": {
     path: "/api/address-toolkit",
     priceUsd: 0.001,
