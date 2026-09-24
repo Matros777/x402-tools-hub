@@ -49,6 +49,7 @@ import { wellKnownPage } from "./web/tools/well-known";
 import { agentHealthPage } from "./web/tools/agent-health";
 import { paymentDecoderPage } from "./web/tools/payment-decoder";
 import { receiptNotaryPage } from "./web/tools/receipt-notary";
+import { tokenQuotePage } from "./web/tools/token-quote";
 import { simulateX402 } from "./simulate-core";
 import { getMerchantTrust } from "./merchant-core";
 import { getAgentRegistry } from "./registry-core";
@@ -62,6 +63,7 @@ import { readWellKnown, type WellKnownInput } from "./wellknown-core";
 import { runAgentHealth, type HealthInput } from "./health-core";
 import { decodePayment, type DecodeInput } from "./decoder-core";
 import { notarize, type NotaryInput, MAX_BODY } from "./notary-core";
+import { getTokenQuote, type QuoteInput } from "./quote-core";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -128,6 +130,7 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "agent-health": agentHealthPage,
   "payment-decoder": paymentDecoderPage,
   "receipt-notary": receiptNotaryPage,
+  "token-quote": tokenQuotePage,
   "address-toolkit": addressToolkitPage,
 };
 
@@ -1545,6 +1548,39 @@ app.post("/api/receipt-notary", async (c) => {
     return c.json({ ok: false, error: "body_too_large", message: `Body exceeds ${MAX_BODY} bytes — send only a pre-computed sha256.` }, 413);
   }
   return c.json({ ok: true, data });
+});
+
+// Free lookup for the Token Quote page. Single source, fact-only.
+app.post("/api/token-quote/lookup", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const input: QuoteInput = {
+    id: body.id === undefined ? "" : String(body.id).slice(0, 120),
+    vs: body.vs === undefined ? undefined : String(body.vs).slice(0, 8),
+  };
+  try {
+    const data = await getTokenQuote(input);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("token-quote lookup error:", e);
+    return c.json({ ok: false, error: "quote_failed" }, 502);
+  }
+});
+
+// Paid tier: Token Quote — same payload as the free lookup, x402-protected.
+// POST { "id": "ETH"|"0x…", "vs"?: "USD" }
+app.post("/api/token-quote", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const input: QuoteInput = {
+    id: body.id === undefined ? "" : String(body.id).slice(0, 120),
+    vs: body.vs === undefined ? undefined : String(body.vs).slice(0, 8),
+  };
+  try {
+    const data = await getTokenQuote(input);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("token-quote error:", e);
+    return c.json({ ok: false, error: "quote_failed" }, 502);
+  }
 });
 
 /* ------------------------------------------------------------------ */

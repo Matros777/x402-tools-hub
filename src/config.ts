@@ -333,6 +333,15 @@ export const TOOLS: Record<string, ToolPricing> = {
     freeForHumans: true,
     category: "trust",
   },
+
+  "token-quote": {
+    path: "/api/token-quote",
+    priceUsd: 0.001,
+    description: "Fact-only token quote: price, 24h change, source and timestamp. No advice, no history.",
+    icon: "¥",
+    freeForHumans: true,
+    category: "crypto",
+  },
 };
 
 /** Payment + network configuration (values come from worker env vars). */
