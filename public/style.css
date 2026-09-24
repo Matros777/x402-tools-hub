@@ -1155,3 +1155,79 @@ section { padding: 72px 0; }
 .breadcrumbs > span[aria-current="page"] {
   color: var(--text);
 }
+
+/* ---------- Agent Studio: tool picker cards ------------------------ */
+
+.as-tools {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 10px;
+  margin: 10px 0 20px;
+}
+
+.as-tool {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "cb name"
+    "cb price"
+    "cb desc";
+  gap: 2px 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg-soft);
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+
+.as-tool:hover {
+  border-color: var(--accent);
+  background: rgba(16, 224, 160, 0.05);
+  box-shadow: var(--glow);
+}
+
+.as-tool input {
+  grid-area: cb;
+  align-self: center;
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.as-tool b {
+  grid-area: name;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+
+.as-price {
+  grid-area: price;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--accent);
+}
+
+.as-desc {
+  grid-area: desc;
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.45;
+}
+
+.as-tool:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(16, 224, 160, 0.08);
+  box-shadow: var(--glow);
+}
+
+@media (max-width: 640px) {
+  .as-tools {
+    grid-template-columns: 1fr;
+  }
+}
