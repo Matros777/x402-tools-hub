@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5fffc9"/>
+      <stop offset="1" stop-color="#0bbf87"/>
+    </linearGradient>
+    <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#1a2a24" stroke-width="1" opacity="0.22"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="630" fill="#0b0f0e"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+
+  <g transform="translate(600,300)">
+    <path d="M0 -135 L135 0 L0 135 L-135 0 Z" fill="none" stroke="url(#g)" stroke-width="9" stroke-linejoin="round"/>
+    <circle cx="0" cy="0" r="16" fill="#10e0a0"/>
+  </g>
+
+  <text x="600" y="520" font-family="'DejaVu Sans Mono',monospace" font-size="76" font-weight="bold" fill="#e6f0ec" text-anchor="middle">x402 Tools Hub</text>
+  <text x="600" y="575" font-family="'DejaVu Sans Mono',monospace" font-size="38" fill="#10e0a0" text-anchor="middle">paid tools for AI agents</text>
+  <text x="600" y="614" font-family="'DejaVu Sans Mono',monospace" font-size="26" fill="#6b7f78" text-anchor="middle">x402 · base</text>
+</svg>

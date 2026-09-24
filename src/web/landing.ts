@@ -30,6 +30,17 @@ export function landingPage(cfg: AppConfig): string {
 <meta name="description" content="Free web tools for humans, paid API for AI agents. x402 micropayments on ${cfg.network}.">
 <link rel="stylesheet" href="/style.css">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="${cfg.siteUrl}/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="${cfg.siteName}">
+<meta property="og:title" content="${cfg.siteName} — paid tools for AI agents">
+<meta property="og:description" content="Free web tools for humans, paid API for AI agents. x402 micropayments on ${cfg.network}.">
+<meta property="og:url" content="${cfg.siteUrl}/">
+<meta property="og:image" content="${cfg.siteUrl}/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${cfg.siteName} — paid tools for AI agents">
+<meta name="twitter:description" content="Free web tools for humans, paid API for AI agents. x402 micropayments on ${cfg.network}.">
+<meta name="twitter:image" content="${cfg.siteUrl}/og.png">
 </head>
 <body>
 

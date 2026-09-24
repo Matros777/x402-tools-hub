@@ -179,6 +179,17 @@ export function renderToolPage(cfg: AppConfig, opts: ToolPageOptions): string {
 <meta name="description" content="${description}">
 <link rel="stylesheet" href="/style.css">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="${cfg.siteUrl}/tools/${opts.name}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="${cfg.siteName}">
+<meta property="og:title" content="${title} — ${cfg.siteName}">
+<meta property="og:description" content="${description}">
+<meta property="og:url" content="${cfg.siteUrl}/tools/${opts.name}">
+<meta property="og:image" content="${cfg.siteUrl}/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${title} — ${cfg.siteName}">
+<meta name="twitter:description" content="${description}">
+<meta name="twitter:image" content="${cfg.siteUrl}/og.png">
 </head>
 <body>
 
