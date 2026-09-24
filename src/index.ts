@@ -40,10 +40,14 @@ import { x402SimulatePage } from "./web/tools/x402-simulate";
 import { merchantTrustPage } from "./web/tools/merchant-trust";
 import { agentRegistryPage } from "./web/tools/agent-registry";
 import { agentStudioPage } from "./web/tools/agent-studio";
+import { addressToolkitPage } from "./web/tools/address-toolkit";
+import { baseGasPage } from "./web/tools/base-gas";
 import { simulateX402 } from "./simulate-core";
 import { getMerchantTrust } from "./merchant-core";
 import { getAgentRegistry } from "./registry-core";
 import { dryRunAgent, type AgentInput } from "./agent-core";
+import { describeAddress } from "./address-core";
+import { getBaseGas } from "./gas-core";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -102,6 +106,8 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "merchant-trust": merchantTrustPage,
   "agent-registry": agentRegistryPage,
   "agent-studio": agentStudioPage,
+  "base-gas": baseGasPage,
+  "address-toolkit": addressToolkitPage,
 };
 
 app.get("/tools/:name", (c) => {
@@ -352,6 +358,42 @@ app.post("/api/agent-studio/lookup", async (c) => {
   } catch (e) {
     console.error("agent-studio lookup error:", e);
     return c.json({ ok: false, error: "dry_run_failed" }, 502);
+  }
+});
+
+// Free lookup for the Address Toolkit page.
+app.post("/api/address-toolkit/lookup", async (c) => {
+  const cfg = getConfig(c.env);
+  const body = await c.req.json().catch(() => ({}));
+  const raw = String(body.address ?? "").trim();
+  if (!raw) return c.json({ error: "address (0x + 40 hex) required" }, 400);
+  try {
+    const data = await describeAddress(raw, cfg.alchemyBaseUrl);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("address-toolkit lookup error:", e);
+    return c.json({ ok: false, error: "lookup_failed" }, 502);
+  }
+});
+
+// Free lookup for the Base Gas page.
+app.post("/api/base-gas/lookup", async (c) => {
+  const cfg = getConfig(c.env);
+  const body = await c.req.json().catch(() => ({}));
+  const ethUsd = body.eth_usd === undefined ? undefined : Number(body.eth_usd);
+  const gasLimit = body.gas_limit === undefined ? undefined : Number(body.gas_limit);
+  try {
+    const gas = await getBaseGas(cfg.alchemyBaseUrl, ethUsd);
+    const custom = gasLimit && gas.total_gwei !== null
+      ? [{
+          gas_limit: gasLimit,
+          cost_usd: +(((gas.total_gwei * 1e9 * gasLimit) / 1e18) * (gas.eth_usd || 0)).toFixed(6),
+        }]
+      : [];
+    return c.json({ ok: true, data: { ...gas, custom } });
+  } catch (e) {
+    console.error("base-gas lookup error:", e);
+    return c.json({ ok: false, error: "gas_failed" }, 502);
   }
 });
 
@@ -1145,6 +1187,37 @@ app.post("/api/agent-studio", async (c) => {
   } catch (e) {
     console.error("agent-studio error:", e);
     return c.json({ ok: false, error: "dry_run_failed" }, 502);
+  }
+});
+
+// Paid tier: Address Toolkit.
+// POST { "address": "0x…" }
+app.post("/api/address-toolkit", async (c) => {
+  const cfg = getConfig(c.env);
+  const body = await c.req.json().catch(() => ({}));
+  const raw = String(body.address ?? "").trim();
+  if (!raw) return c.json({ error: "address (0x + 40 hex) required" }, 400);
+  try {
+    const data = await describeAddress(raw, cfg.alchemyBaseUrl);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("address-toolkit error:", e);
+    return c.json({ ok: false, error: "lookup_failed" }, 502);
+  }
+});
+
+// Paid tier: Base Gas.
+// POST { "gas_limit"?, "eth_usd"? }
+app.post("/api/base-gas", async (c) => {
+  const cfg = getConfig(c.env);
+  const body = await c.req.json().catch(() => ({}));
+  const ethUsd = body.eth_usd === undefined ? undefined : Number(body.eth_usd);
+  try {
+    const gas = await getBaseGas(cfg.alchemyBaseUrl, ethUsd);
+    return c.json({ ok: true, gas });
+  } catch (e) {
+    console.error("base-gas error:", e);
+    return c.json({ ok: false, error: "gas_failed" }, 502);
   }
 });
 

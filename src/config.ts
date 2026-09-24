@@ -253,6 +253,23 @@ export const TOOLS: Record<string, ToolPricing> = {
     freeForHumans: true,
     category: "crypto",
   },
+
+  "address-toolkit": {
+    path: "/api/address-toolkit",
+    priceUsd: 0.001,
+    description: "Validate, EIP-55 checksum and classify any EVM address (EOA vs contract).",
+    icon: "⏻",
+    freeForHumans: true,
+    category: "crypto",
+  },
+  "base-gas": {
+    path: "/api/base-gas",
+    priceUsd: 0.001,
+    description: "Live Base gas price and transaction cost estimate in USD.",
+    icon: "⚡",
+    freeForHumans: true,
+    category: "crypto",
+  },
 };
 
 /** Payment + network configuration (values come from worker env vars). */
