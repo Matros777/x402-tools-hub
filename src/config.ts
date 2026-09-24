@@ -281,6 +281,15 @@ export const TOOLS: Record<string, ToolPricing> = {
     category: "trust",
   },
 
+  "well-known": {
+    path: "/api/well-known",
+    priceUsd: 0.001,
+    description: "Read the discovery surface of any origin: well-known/x402, openapi, agent.json, llms.txt, robots.txt.",
+    icon: "◉",
+    freeForHumans: true,
+    category: "trust",
+  },
+
   "address-toolkit": {
     path: "/api/address-toolkit",
     priceUsd: 0.001,

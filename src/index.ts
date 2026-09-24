@@ -45,6 +45,7 @@ import { baseGasPage } from "./web/tools/base-gas";
 import { agentIntelPage } from "./web/tools/agent-intel";
 import { agentRoutePage } from "./web/tools/agent-route";
 import { x402ProbePage } from "./web/tools/402-probe";
+import { wellKnownPage } from "./web/tools/well-known";
 import { simulateX402 } from "./simulate-core";
 import { getMerchantTrust } from "./merchant-core";
 import { getAgentRegistry } from "./registry-core";
@@ -54,6 +55,7 @@ import { getBaseGas } from "./gas-core";
 import { runAgentIntel, type AgentIntelInput } from "./agent-intel-core";
 import { routeTask, type RouteInput } from "./route-core";
 import { probeEndpoint, type ProbeInput } from "./probe-core";
+import { readWellKnown, type WellKnownInput } from "./wellknown-core";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -116,6 +118,7 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "agent-intel": agentIntelPage,
   "agent-route": agentRoutePage,
   "402-probe": x402ProbePage,
+  "well-known": wellKnownPage,
   "address-toolkit": addressToolkitPage,
 };
 
@@ -473,6 +476,21 @@ app.post("/api/402-probe/lookup", async (c) => {
   } catch (e) {
     console.error("402-probe lookup error:", e);
     return c.json({ ok: false, error: "probe_failed" }, 502);
+  }
+});
+
+// Free lookup for the Well-Known Reader page.
+app.post("/api/well-known/lookup", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const input: WellKnownInput = {
+    origin: body.origin === undefined ? "" : String(body.origin).slice(0, 2000),
+  };
+  try {
+    const data = await readWellKnown(input);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("well-known lookup error:", e);
+    return c.json({ ok: false, error: "wellknown_failed" }, 502);
   }
 });
 
@@ -1408,6 +1426,22 @@ app.post("/api/402-probe", async (c) => {
   } catch (e) {
     console.error("402-probe error:", e);
     return c.json({ ok: false, error: "probe_failed" }, 502);
+  }
+});
+
+// Paid tier: Well-Known Reader.
+// POST { "origin": "https://host" }
+app.post("/api/well-known", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const input: WellKnownInput = {
+    origin: body.origin === undefined ? "" : String(body.origin).slice(0, 2000),
+  };
+  try {
+    const data = await readWellKnown(input);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("well-known error:", e);
+    return c.json({ ok: false, error: "wellknown_failed" }, 502);
   }
 });
 
