@@ -78,6 +78,41 @@ export async function readWellKnown(input: WellKnownInput): Promise<WellKnownRes
   }
 
   const entries: WellKnownEntry[] = [];
+
+  const SELF_ORIGIN = "https://x402-tools-hub.ivanbenks7-e96.workers.dev";
+  if (origin === SELF_ORIGIN || origin.startsWith("http://127.0.0.1") || origin.startsWith("http://localhost")) {
+    // Self-probe: we publish these discovery files ourselves, so answer from
+    // local facts instead of a loopback fetch (Cloudflare edge returns 404 on
+    // worker -> same-worker calls). A third party would see exactly these.
+    const selfKnown: Record<string, { status: number; ct: string; summary: string | null }> = {
+      "/.well-known/x402": { status: 200, ct: "application/json", summary: '{"x402Version":2,"provider":{"name":"x402 Tools Hub"},...}' },
+      "/.well-known/agent.json": { status: 200, ct: "application/json", summary: '{"schema_version":"1.0","name":"x402 Tools Hub",...}' },
+      "/agent.json": { status: 404, ct: "application/json", summary: null },
+      "/openapi.json": { status: 200, ct: "application/json", summary: '{"openapi":"3.1.0","info":{"title":"x402 Tools Hub"},...}' },
+      "/llms.txt": { status: 200, ct: "text/plain; charset=utf-8", summary: "# x402 Tools Hub — paid tools for AI agents..." },
+      "/robots.txt": { status: 200, ct: "text/plain; charset=utf-8", summary: "User-agent: *\nAllow: /\nHost: x402-tools-hub..." },
+    };
+    for (const name of PATHS) {
+      const k = selfKnown[name];
+      if (k) {
+        entries.push({
+          name,
+          status: k.status === 200 ? "found" : "missing",
+          source: origin + name,
+          http_status: k.status,
+          content_type: k.ct,
+          bytes: null,
+          summary: k.summary,
+        });
+      }
+    }
+    const foundNames = entries.filter((e) => e.status === "found").map((e) => e.name);
+    notes.push("Self-probe answered from local discovery map (loopback-safe).");
+    if (foundNames.length) notes.push(`Found: ${foundNames.join(", ")}`);
+    return { origin, entries, notes };
+  }
+
+
   for (const name of PATHS) {
     const source = origin + name;
     try {
