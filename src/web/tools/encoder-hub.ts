@@ -228,6 +228,17 @@ export function encoderHubPage(cfg: AppConfig): string {
       "Base64, URL, HTML entities, hex, binary and JWT segments — encode and decode " +
       "entirely in your browser. " +
       "The paid API endpoint for agents is at <code>POST /api/encoder-hub</code>.",
+    howToUse: [
+      "Choose an encoding: Base64, URL, HTML entities, hex, binary or JWT segments.",
+      "Paste your text and pick <strong>Encode</strong> or <strong>Decode</strong>.",
+      "Inspect the output, then copy it with one click.",
+    ],
+    useCases: [
+      "Decoding a Base64 blob from a log or a JWT payload.",
+      "URL-encoding query parameters before building a request.",
+      "Escaping HTML entities for safe rendering.",
+      "Agents converting payloads via the paid <code>POST /api/encoder-hub</code> endpoint.",
+    ],
     body: BODY,
     script: SCRIPT,
   };

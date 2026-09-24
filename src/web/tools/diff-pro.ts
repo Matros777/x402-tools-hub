@@ -239,6 +239,18 @@ export function diffProPage(cfg: AppConfig): string {
       "Compare two blocks of text line by line — unified diff, side-by-side view and " +
       "stats, all computed locally in your browser. " +
       "The paid API endpoint for agents is at <code>POST /api/diff-pro</code>.",
+    howToUse: [
+      "Paste the original text in the left pane and the changed text in the right pane.",
+      "Pick a view: unified diff, side-by-side, or stats only.",
+      "Toggle ignore-whitespace / ignore-case when noisy formatting hides real changes.",
+      "Click <strong>Compare</strong> and copy the result or download it as a .diff file.",
+    ],
+    useCases: [
+      "Reviewing config or code changes before a commit.",
+      "Checking what changed between two API responses.",
+      "Producing a clean patch for a bug report or ticket.",
+      "AI agents diffing documents through the paid <code>POST /api/diff-pro</code> endpoint.",
+    ],
     body: BODY,
     script: SCRIPT,
   };

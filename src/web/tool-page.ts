@@ -22,6 +22,10 @@ export interface ToolPageOptions {
   body: string;
   /** Inline JS for client-side logic (runs fully in the browser) */
   script?: string;
+  /** "How to use" steps rendered as an ordered list under the tool */
+  howToUse?: string[];
+  /** "Where it applies" bullet points rendered under the tool */
+  useCases?: string[];
 }
 
 interface SidebarEntry {
@@ -124,6 +128,39 @@ function sidebarScript(): string {
 `;
 }
 
+/**
+ * Bottom-of-page guidance: "How to use" (ordered steps) and "Where it applies"
+ * (bullet list). Rendered only when the corresponding option is provided, so
+ * tools can opt in incrementally without touching the shared shell.
+ */
+function guideMarkup(opts: ToolPageOptions): string {
+  const steps = opts.howToUse ?? [];
+  const cases = opts.useCases ?? [];
+  if (steps.length === 0 && cases.length === 0) return "";
+
+  const blocks: string[] = [];
+  if (steps.length > 0) {
+    const items = steps.map((s) => `<li>${s}</li>`).join("");
+    blocks.push(
+      `<div class="guide-block">` +
+        `<h2 class="guide-title">How to use</h2>` +
+        `<ol class="guide-steps">${items}</ol>` +
+        `</div>`
+    );
+  }
+  if (cases.length > 0) {
+    const items = cases.map((s) => `<li>${s}</li>`).join("");
+    blocks.push(
+      `<div class="guide-block">` +
+        `<h2 class="guide-title">Where it applies</h2>` +
+        `<ul class="guide-cases">${items}</ul>` +
+        `</div>`
+    );
+  }
+
+  return `<section class="tool-guide">${blocks.join("")}</section>`;
+}
+
 export function renderToolPage(cfg: AppConfig, opts: ToolPageOptions): string {
   const tool = TOOLS[opts.name];
   const title = opts.title ?? opts.name;
@@ -181,6 +218,7 @@ export function renderToolPage(cfg: AppConfig, opts: ToolPageOptions): string {
     </div>
     <p class="tool-intro">${opts.intro}</p>
     ${opts.body}
+    ${guideMarkup(opts)}
   </section>
 </main>
 

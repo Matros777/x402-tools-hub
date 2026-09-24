@@ -16,6 +16,19 @@ export function x402SimulatePage(cfg: AppConfig): string {
     intro:
       "Model the cost of an x402 workload before you run it. Add call groups with a price and a count, optionally compare against a flat subscription, and see the true effective price per call including network overhead and a break-even point.",
 
+    howToUse: [
+      "Add call groups with a price per call and an expected count.",
+      "Optionally enter a flat subscription to compare against.",
+      "Set a network fee per call to see the true effective price.",
+      "Read the total, the effective price per call and the break-even point.",
+    ],
+    useCases: [
+      "Deciding between pay-per-call and a flat subscription.",
+      "Budgeting an x402 workload before wiring it up.",
+      "Showing a team the real cost once network fees are included.",
+      "Agents planning spend via the paid <code>POST /api/x402-simulate</code> endpoint.",
+    ],
+
     body: `
       <div class="studio">
         <div class="query-row">

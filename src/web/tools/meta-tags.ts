@@ -193,6 +193,17 @@ export function metaTagsPage(cfg: AppConfig): string {
     title: "Meta Tags Studio",
     intro:
       "Generate SEO, OpenGraph and Twitter Card meta tags with a live social preview and length warnings. Copy the HTML or a JSON-LD block. Everything runs locally in your browser.",
+    howToUse: [
+      "Fill in title, description, URL and image fields.",
+      "Watch the live social preview update as you type.",
+      "Fix any length warnings for SEO or Twitter Cards.",
+      "Copy the HTML head tags or a JSON-LD block.",
+    ],
+    useCases: [
+      "Preparing meta tags for a new landing page.",
+      "Checking how a link will render when shared.",
+      "Generating structured data for search engines.",
+    ],
     body: BODY,
     script: SCRIPT,
   });

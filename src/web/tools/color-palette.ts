@@ -279,6 +279,17 @@ export function colorPalettePage(cfg: AppConfig): string {
     title: "Color Palette Studio",
     intro:
       "Pick a base color to get HEX / RGB / HSL values, a 10-step shade palette, WCAG contrast checks against white and black, and one-click export to CSS variables or Tailwind config. Everything runs locally in your browser.",
+    howToUse: [
+      "Pick a base color with the picker or type a HEX value.",
+      "Review HEX / RGB / HSL values and the 10-step shade palette.",
+      "Check WCAG contrast against white and black.",
+      "Export to CSS variables or a Tailwind config.",
+    ],
+    useCases: [
+      "Building a consistent UI palette from one brand color.",
+      "Checking accessibility contrast before shipping a design.",
+      "Dropping tokens straight into a CSS or Tailwind project.",
+    ],
     body: BODY,
     script: SCRIPT,
   });

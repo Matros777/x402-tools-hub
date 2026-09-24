@@ -17,6 +17,19 @@ export function merchantTrustPage(cfg: AppConfig): string {
     intro:
       "Reputation for a merchant wallet. Scores how much USDC a receiver has collected on Base, from how many distinct payers, how often, how recently — and flags concentration risk. Read live from the chain, no database in between.",
 
+    howToUse: [
+      "Paste a merchant (receiver) wallet address.",
+      "Click <strong>Score merchant</strong> to read its USDC inflows.",
+      "Review total volume, payer count, frequency, recency and concentration risk.",
+      "Decide whether the merchant looks healthy or concentrated.",
+    ],
+    useCases: [
+      "Vetting a merchant before an x402 integration.",
+      "Spotting revenue concentration on a single payer.",
+      "Monitoring a merchant's activity over time.",
+      "Agents checking merchants via the paid <code>POST /api/merchant-trust</code> endpoint.",
+    ],
+
     body: `
       <div class="studio">
         <div class="query-row">

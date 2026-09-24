@@ -248,6 +248,18 @@ export function timeToolkitPage(cfg: AppConfig): string {
       "Convert between Unix timestamps, ISO 8601, RFC 2822 and human-readable dates, " +
       "inspect time zones, measure durations and parse natural-language dates — all in your browser. " +
       "The paid API endpoint for agents is at <code>POST /api/time-toolkit</code>.",
+    howToUse: [
+      "Enter a Unix timestamp, an ISO 8601 string or a natural-language date.",
+      "See every equivalent representation at once, in your chosen time zone.",
+      "Measure the duration between two moments.",
+      "Copy any format with a single click.",
+    ],
+    useCases: [
+      "Converting a log timestamp into a human date.",
+      "Checking what a cron schedule means in your local time.",
+      "Computing the gap between two events.",
+      "Agents converting time via the paid <code>POST /api/time-toolkit</code> endpoint.",
+    ],
     body: BODY,
     script: SCRIPT,
   };

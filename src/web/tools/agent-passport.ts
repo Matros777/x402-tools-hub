@@ -17,6 +17,19 @@ export function agentPassportPage(cfg: AppConfig): string {
     intro:
       "A reputation passport for x402 payer wallets. We read an address's public USDC history on Base and distil it into a 0–100 Trust Score: age, volume, frequency, counterparty diversity and recency.",
 
+    howToUse: [
+      "Paste an agent (payer) wallet address.",
+      "Click <strong>Get passport</strong> to read its public USDC history.",
+      "Review the 0–100 Trust Score and its five factors: age, volume, frequency, diversity and recency.",
+      "Use the tier (new → platinum) to decide whether to transact.",
+    ],
+    useCases: [
+      "Screening a new agent before accepting its payments.",
+      "Giving an autonomous agent a reputation signal to act on.",
+      "Comparing counterparties before choosing who to work with.",
+      "Agents scoring peers via the paid <code>POST /api/agent-passport</code> endpoint ($0.001 USDC).",
+    ],
+
     body: `
       <div class="studio">
         <div class="query-row">

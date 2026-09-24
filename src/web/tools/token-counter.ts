@@ -123,6 +123,18 @@ export function tokenCounterPage(cfg: AppConfig): string {
       "Count characters, words, lines and sentences, and estimate LLM tokens " +
       "for popular model families — entirely in your browser. " +
       "The paid API endpoint for agents is at <code>POST /api/token-counter</code>.",
+    howToUse: [
+      "Paste or type your text into the editor.",
+      "Read the character, word, line and sentence counts.",
+      "Compare estimated LLM tokens across model families.",
+      "Copy the numbers into your prompt-budget spreadsheet.",
+    ],
+    useCases: [
+      "Staying inside a model context window before sending a prompt.",
+      "Estimating API cost for a batch of documents.",
+      "Checking article length for SEO or editorial limits.",
+      "Agents budgeting prompts via the paid <code>POST /api/token-counter</code> endpoint.",
+    ],
     body: BODY,
     script: SCRIPT,
   };

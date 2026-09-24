@@ -232,6 +232,17 @@ export function unitConverterPage(cfg: AppConfig): string {
     title: "Unit Converter",
     intro:
       "Convert between length, weight, volume, temperature, area, speed and digital-data units. Type any value and see every equivalent unit at once. Everything runs locally in your browser — nothing is uploaded.",
+    howToUse: [
+      "Type a value and choose its unit.",
+      "See every equivalent unit in the same category at once.",
+      "Switch category for length, weight, volume, temperature, area, speed or data.",
+      "Copy the converted value you need.",
+    ],
+    useCases: [
+      "Converting measurements while reading a spec or recipe.",
+      "Translating digital-data units (KB/MB/GB) for storage planning.",
+      "Quick everyday conversions without a round-trip to a server.",
+    ],
     body: BODY,
     script: SCRIPT,
   });

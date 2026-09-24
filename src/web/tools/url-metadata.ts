@@ -232,6 +232,18 @@ export function urlMetadataPage(cfg: AppConfig): string {
       "Extract title, description, OpenGraph tags and favicon from HTML — locally in your browser. " +
       "You can also fetch a page through the server (paid x402 endpoint for agents). " +
       "The API is at <code>POST /api/url-metadata</code>.",
+    howToUse: [
+      "Paste raw HTML or fetch a page through the server.",
+      "Review title, description, OpenGraph, Twitter Card tags and favicon.",
+      "Spot missing or duplicated meta tags.",
+      "Copy the extracted metadata as JSON.",
+    ],
+    useCases: [
+      "Auditing how a page will appear when shared on social media.",
+      "Extracting OpenGraph data from HTML you already have.",
+      "Checking favicons and canonical links.",
+      "Agents fetching metadata via the paid <code>POST /api/url-metadata</code> endpoint.",
+    ],
     body: BODY,
     script: SCRIPT,
   };

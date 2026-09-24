@@ -428,6 +428,18 @@ export function jwtInspectorPage(cfg: AppConfig): string {
       "Decode, audit, verify and diff JSON Web Tokens — entirely in your browser. " +
       "Your token never leaves this page. The paid API endpoint for agents is at " +
       "<code>POST /api/jwt-inspector</code>.",
+    howToUse: [
+      "Paste a JWT into the field — header, payload and signature are decoded instantly.",
+      "Inspect claims, expiry and algorithm.",
+      "Optionally paste a secret or public key to verify the signature.",
+      "Diff two tokens to see what changed between issuances.",
+    ],
+    useCases: [
+      "Debugging an authentication failure without leaving the browser.",
+      "Checking token expiry and scopes during incident response.",
+      "Verifying that a token was signed with the expected key.",
+      "Agents decoding tokens via the paid <code>POST /api/jwt-inspector</code> endpoint.",
+    ],
     body: BODY,
     script: SCRIPT,
   };

@@ -1064,3 +1064,63 @@ section { padding: 72px 0; }
   color: #e6f0ec;
   margin: 18px 0 4px;
 }
+
+/* ---------- Tool guide: "How to use" + "Where it applies" ---------- */
+.tool-guide {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+
+.guide-block {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+}
+
+.guide-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #e6e6e6;
+}
+
+.guide-steps,
+.guide-cases {
+  margin: 0;
+  padding-left: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.guide-steps {
+  list-style: decimal;
+}
+
+.guide-cases {
+  list-style: disc;
+}
+
+.guide-steps li,
+.guide-cases li {
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: rgba(230, 230, 230, 0.82);
+}
+
+.guide-steps li::marker,
+.guide-cases li::marker {
+  color: rgba(120, 200, 255, 0.85);
+}
+
+@media (max-width: 640px) {
+  .tool-guide {
+    grid-template-columns: 1fr;
+  }
+}

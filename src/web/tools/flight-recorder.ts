@@ -17,6 +17,19 @@ export function flightRecorderPage(cfg: AppConfig): string {
     intro:
       "The black box for x402 payments. Inspect every USDC transfer an address has received (or sent) on Base — amounts, counterparties and links to Basescan. Read live from the chain, with no database in between.",
 
+    howToUse: [
+      "Paste a wallet address and choose received or sent.",
+      "Set a block window and result limit to keep the query fast.",
+      "Review every USDC transfer: amount, counterparty and timestamp.",
+      "Open any transfer on Basescan for full detail.",
+    ],
+    useCases: [
+      "Reconstructing the payment history of an x402 merchant.",
+      "Auditing incoming USDC before trusting a counterparty.",
+      "Investigating a specific transfer on Base.",
+      "Agents reading the ledger via the paid <code>POST /api/flight-recorder</code> endpoint ($0.001 USDC).",
+    ],
+
     body: `
       <div class="studio">
         <div class="query-row">

@@ -190,6 +190,17 @@ export function envStudioPage(cfg: AppConfig): string {
     title: "Env Studio",
     intro:
       "Paste a .env file to inspect every key, spot duplicate entries and convert to JSON, YAML, docker-compose or shell exports. Secrets can be masked before you share. Everything runs locally in your browser — your environment never leaves your device.",
+    howToUse: [
+      "Paste a .env file into the editor.",
+      "Inspect every key and spot duplicate entries.",
+      "Convert to JSON, YAML, docker-compose or shell exports.",
+      "Mask secrets before sharing a screenshot or snippet.",
+    ],
+    useCases: [
+      "Auditing a .env file for duplicates or typos.",
+      "Translating config between docker-compose and shell formats.",
+      "Sanitising environment variables before sharing them.",
+    ],
     body: BODY,
     script: SCRIPT,
   });

@@ -196,6 +196,18 @@ export function jsonStudioPage(cfg: AppConfig): string {
     intro:
       "Format, minify, validate, explore and diff JSON — entirely in your browser. " +
       "The paid API endpoint for agents is at <code>POST /api/json-studio</code>.",
+    howToUse: [
+      "Paste or type JSON into the editor.",
+      "Use <strong>Format</strong>, <strong>Minify</strong>, <strong>Validate</strong> or the tree explorer.",
+      "Run a JSON diff against a second document when comparing payloads.",
+      "Copy the cleaned output or the validation report.",
+    ],
+    useCases: [
+      "Formatting an API response for readability.",
+      "Validating a config file before shipping it.",
+      "Comparing two payload versions to spot drift.",
+      "Agents normalising JSON through the paid <code>POST /api/json-studio</code> endpoint.",
+    ],
     body: BODY,
     script: SCRIPT,
   };

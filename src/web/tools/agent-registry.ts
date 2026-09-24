@@ -18,6 +18,19 @@ export function agentRegistryPage(cfg: AppConfig): string {
     intro:
       "A live directory of agents and merchants, built on demand from seed wallets. It follows their USDC counterparties one hop on Base, scores each wallet with the Trust Layer, and ranks the result. No database — the chain is the registry.",
 
+    howToUse: [
+      "Enter one or more seed wallets, comma-separated.",
+      "Pick how many counterparties to follow per seed.",
+      "Click <strong>Build registry</strong> to score and rank them.",
+      "Sort and inspect the resulting directory of agents and merchants.",
+    ],
+    useCases: [
+      "Discovering active agents and merchants around a known wallet.",
+      "Mapping a payment neighbourhood on Base.",
+      "Ranking counterparties by Trust Score for a marketplace.",
+      "Agents exploring the graph via the paid <code>POST /api/agent-registry</code> endpoint.",
+    ],
+
     body: `
       <div class="studio">
         <div class="query-row">

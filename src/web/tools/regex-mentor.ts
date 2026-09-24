@@ -266,6 +266,18 @@ export function regexMentorPage(cfg: AppConfig): string {
       "Write, test and understand regular expressions — highlighted matches, groups and a " +
       "cheatsheet, all evaluated locally in your browser. " +
       "The paid API endpoint for agents is at <code>POST /api/regex-mentor</code>.",
+    howToUse: [
+      "Type a regular expression and a sample text.",
+      "See matches highlighted live, with named and numbered groups.",
+      "Open the cheatsheet for syntax hints.",
+      "Copy the pattern or the match list when done.",
+    ],
+    useCases: [
+      "Writing a validation pattern with instant feedback.",
+      "Explaining an inherited regex you do not fully understand.",
+      "Extracting groups from log lines.",
+      "Agents matching text via the paid <code>POST /api/regex-mentor</code> endpoint.",
+    ],
     body: BODY,
     script: SCRIPT,
   };

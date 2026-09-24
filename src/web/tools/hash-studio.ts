@@ -184,6 +184,16 @@ export function hashStudioPage(cfg: AppConfig): string {
     title: "Hash Studio",
     intro:
       "Compute MD5, SHA-1, SHA-256, SHA-384 and SHA-512 hashes of any text. Live update as you type, copy individual digests or all of them at once. Everything runs locally in your browser via WebCrypto — your input never leaves your device.",
+    howToUse: [
+      "Type or paste your text into the field.",
+      "Watch MD5, SHA-1, SHA-256, SHA-384 and SHA-512 digests update live.",
+      "Copy an individual hash or all of them at once.",
+    ],
+    useCases: [
+      "Verifying a checksum you received alongside a file.",
+      "Generating a quick content fingerprint.",
+      "Comparing digests without uploading anything to a server.",
+    ],
     body: BODY,
     script: SCRIPT,
   });

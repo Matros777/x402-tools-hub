@@ -299,6 +299,16 @@ export function gitExplainerPage(cfg: AppConfig): string {
     title: "Git Explainer",
     intro:
       "Paste any git command or error message and get a plain-English explanation, flag breakdown and safe fix suggestions. The dictionary ships with the page — nothing is sent to a server.",
+    howToUse: [
+      "Paste a git command or an error message.",
+      "Read the plain-English explanation and a flag-by-flag breakdown.",
+      "Follow the safe fix suggestions when something went wrong.",
+    ],
+    useCases: [
+      "Understanding an unfamiliar git error before you act.",
+      "Learning what flags like <code>--amend</code> or <code>--rebase</code> really do.",
+      "Onboarding teammates who are new to git.",
+    ],
     body: BODY,
     script: SCRIPT,
   });

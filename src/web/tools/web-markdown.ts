@@ -177,6 +177,18 @@ export function webMarkdownPage(cfg: AppConfig): string {
       "Turn any HTML into clean Markdown — locally in your browser. " +
       "You can also fetch a page through the server (paid x402 endpoint for agents). " +
       "The API is at <code>POST /api/web-markdown</code>.",
+    howToUse: [
+      "Paste HTML into the left pane, or fetch a page through the server.",
+      "Click <strong>Convert</strong> to get clean Markdown.",
+      "Tune options such as heading style or link format if needed.",
+      "Copy the Markdown or download it as a file.",
+    ],
+    useCases: [
+      "Turning documentation pages into Markdown for a knowledge base.",
+      "Feeding web articles into an LLM pipeline.",
+      "Cleaning pasted HTML before publishing.",
+      "Agents converting pages via the paid <code>POST /api/web-markdown</code> endpoint.",
+    ],
     body: BODY,
     script: SCRIPT,
   };

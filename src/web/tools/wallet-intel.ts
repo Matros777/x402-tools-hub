@@ -146,6 +146,18 @@ export function walletIntelPage(cfg: AppConfig): string {
       "outgoing transaction count and the top ERC-20 tokens. The web form is free " +
       "and read-only; the deep tier is available to agents at " +
       "<code>POST /api/wallet-intel</code> (x402, $0.001 USDC).",
+    howToUse: [
+      "Paste a Base (EVM) address into the field.",
+      "Click <strong>Inspect</strong> to read the live on-chain snapshot.",
+      "Review ETH balance, outgoing transaction count and top ERC-20 tokens.",
+      "Copy the address or open it on Basescan.",
+    ],
+    useCases: [
+      "Screening a wallet before you interact with it.",
+      "Getting a quick portfolio overview without a block explorer.",
+      "Checking activity level before an x402 payment.",
+      "Agents pulling deep data via the paid <code>POST /api/wallet-intel</code> endpoint ($0.001 USDC).",
+    ],
     body: BODY,
     script: SCRIPT,
   };
