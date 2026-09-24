@@ -1104,6 +1104,36 @@ app.post("/api/agent-passport", async (c) => {
 
 app.get("/favicon.ico", (c) => c.redirect("/favicon.svg", 301));
 
+/* ------------------------------------------------------------------ */
+/*  SEO: robots.txt + sitemap.xml                                      */
+/* ------------------------------------------------------------------ */
+
+app.get("/robots.txt", (c) => {
+  const cfg = getConfig(c.env);
+  return c.body(
+    `User-agent: *\nAllow: /\n\nSitemap: ${cfg.siteUrl}/sitemap.xml\n`,
+    200,
+    { "Content-Type": "text/plain; charset=utf-8" }
+  );
+});
+
+app.get("/sitemap.xml", (c) => {
+  const cfg = getConfig(c.env);
+  const tools = Object.keys(TOOLS)
+    .map(
+      (name) =>
+        `  <url><loc>${cfg.siteUrl}/tools/${name}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`
+    )
+    .join("\n");
+  const xml =
+    `<?xml version="1.0" encoding="UTF-8"?>\n` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    `  <url><loc>${cfg.siteUrl}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>\n` +
+    tools +
+    `\n</urlset>\n`;
+  return c.body(xml, 200, { "Content-Type": "application/xml; charset=utf-8" });
+});
+
 app.notFound((c) =>
   c.html(
     `<!DOCTYPE html><html lang="en"><head>` +

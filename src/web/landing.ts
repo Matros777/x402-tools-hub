@@ -28,6 +28,7 @@ export function landingPage(cfg: AppConfig): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${cfg.siteName} — paid tools for AI agents</title>
 <meta name="description" content="Free web tools for humans, paid API for AI agents. x402 micropayments on ${cfg.network}.">
+<meta name="keywords" content="x402, AI agents, paid API, USDC, Base, micropayments, developer tools, web tools, pay-per-call">
 <link rel="stylesheet" href="/style.css">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="canonical" href="${cfg.siteUrl}/">

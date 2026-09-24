@@ -275,7 +275,7 @@ export function getConfig(env: Record<string, string | undefined>): AppConfig {
     siteName: env.SITE_NAME ?? "x402 Tools Hub",
     // Fallback: the platform's own deploy domain (Cloudflare workers.dev).
     // Env var SITE_URL (if set) always wins.
-    siteUrl: env.SITE_URL ?? "https://x402-tools-hub.ivanbenks7-e96.workers.dev",
+    siteUrl: env.SITE_URL ?? "https://x402-ai-agent.space",
     alchemyBaseUrl: env.ALCHEMY_BASE_URL,
   };
 }

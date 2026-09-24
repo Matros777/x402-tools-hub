@@ -177,6 +177,7 @@ export function renderToolPage(cfg: AppConfig, opts: ToolPageOptions): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title} — ${cfg.siteName}</title>
 <meta name="description" content="${description}">
+<meta name="keywords" content="${opts.name}, x402, paid API, AI agents, ${cfg.network}, developer tool">
 <link rel="stylesheet" href="/style.css">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="canonical" href="${cfg.siteUrl}/tools/${opts.name}">
