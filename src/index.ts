@@ -1273,6 +1273,15 @@ app.get("/sitemap.xml", (c) => {
 // /.well-known/x402-discovery — Bazaar-compatible discovery metadata.
 // Lets crawlers (x402-list, x402.direct, x402Scout, 402index, Bazaar)
 // find the hub without CDP/Coinbase keys.
+// Domain verification for 402index.io — serves the public verification hash
+// so the directory can approve all hub services instantly.
+app.get("/.well-known/402index-verify.txt", (c) =>
+  c.body("1f4e4431ad415418364b222d10071bb8f34fc55d0e57f588ccef9374bc731078", 200, {
+    "Content-Type": "text/plain; charset=utf-8",
+    "Cache-Control": "no-store",
+  })
+);
+
 app.get("/.well-known/x402-discovery", (c) => {
   const cfg = getConfig(c.env);
   const siteUrl = cfg.siteUrl;
