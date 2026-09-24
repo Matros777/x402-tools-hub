@@ -1266,6 +1266,77 @@ app.get("/sitemap.xml", (c) => {
   return c.body(xml, 200, { "Content-Type": "application/xml; charset=utf-8" });
 });
 
+/* ------------------------------------------------------------------ */
+/*  Bazaar discovery: machine-readable catalog for x402 directories    */
+/* ------------------------------------------------------------------ */
+
+// /.well-known/x402-discovery — Bazaar-compatible discovery metadata.
+// Lets crawlers (x402-list, x402.direct, x402Scout, 402index, Bazaar)
+// find the hub without CDP/Coinbase keys.
+app.get("/.well-known/x402-discovery", (c) => {
+  const cfg = getConfig(c.env);
+  const siteUrl = cfg.siteUrl;
+  return c.json({
+    x402Version: 2,
+    provider: {
+      name: cfg.siteName,
+      website: siteUrl,
+      docsUrl: `${siteUrl}/openapi.json`,
+      description: "Paid tools hub for AI agents. Free web tools for humans.",
+      category: "INFRASTRUCTURE",
+      tags: ["x402", "tools", "developer", "crypto", "ai-agents", "web"],
+    },
+    resources: Object.entries(TOOLS).map(([name, t]) => ({
+      name,
+      path: t.path,
+      method: "POST",
+      description: t.description,
+      priceUsd: t.priceUsd,
+      free_for_humans: t.freeForHumans,
+      network: cfg.network,
+      mimeType: "application/json",
+      url: `${siteUrl}${t.path}`,
+    })),
+  });
+});
+
+// /discovery/resources — Bazaar-style discovery endpoint (same shape as
+// facilitator catalogs), so any Bazaar-compatible client can page it.
+app.get("/discovery/resources", (c) => {
+  const cfg = getConfig(c.env);
+  const siteUrl = cfg.siteUrl;
+  const acc = {
+    scheme: "exact",
+    network: "eip155:8453",
+    amount: (priceUsd: number) => Math.round(priceUsd * 1_000_000).toString(),
+    asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    payTo: cfg.payTo ?? "",
+    maxTimeoutSeconds: 300,
+    extra: { name: "USD Coin", version: "2" },
+  };
+  return c.json({
+    x402Version: 2,
+    items: Object.entries(TOOLS).map(([name, t]) => ({
+      resource: `${siteUrl}${t.path}`,
+      type: "http",
+      x402Version: 2,
+      accepts: [{ ...acc, amount: Math.round(t.priceUsd * 1_000_000).toString() }],
+      metadata: {
+        provider: { name: cfg.siteName, category: "INFRASTRUCTURE" },
+        path: t.path,
+        method: "POST",
+        description: t.description,
+        mimeType: "application/json",
+        input: { type: "object", properties: {} },
+        output: { type: "object" },
+        supportsVanillax402: true,
+        supportsCircleGateway: false,
+        siwx: false,
+      },
+    })),
+  });
+});
+
 app.notFound((c) =>
   c.html(
     `<!DOCTYPE html><html lang="en"><head>` +

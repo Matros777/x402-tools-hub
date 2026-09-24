@@ -1,9 +1,14 @@
 /**
  * x402 v2 payment middleware for the Tools Hub.
  * Совместим с awal/oval CLI. Собственная реализация вместо x402-hono (v1).
+ *
+ * v2 bazaar discovery: every 402 response carries extensions.bazaar with
+ * provider metadata + input/output JSON Schema, so any facilitator that
+ * supports the x402 Bazaar extension can catalog these paid endpoints
+ * automatically — no CDP/Coinbase key required.
  */
 import type { MiddlewareHandler } from "hono";
-import { TOOLS, type AppConfig } from "./config";
+import { TOOLS, type AppConfig, type ToolPricing } from "./config";
 
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const NETWORK_EIP155 = "eip155:8453";
@@ -27,22 +32,62 @@ function buildAccepts(cfg: AppConfig, priceUsd: number) {
   };
 }
 
+/** Generic input schema: any of our tools takes a JSON object body. */
+function bazaarInputSchema(tool: ToolPricing) {
+  return {
+    type: "object",
+    properties: {
+      // Tool-specific fields are documented in the hub openapi.json; here we
+      // keep a permissive object schema so catalogs can index the endpoint.
+    },
+  };
+}
+
+/** Bazaar discovery extension (x402 v2, extensions.bazaar). */
+function buildBazaarExtension(cfg: AppConfig, tool: ToolPricing) {
+  return {
+    bazaar: {
+      info: {
+        provider: {
+          name: cfg.siteName,
+          description: "Paid tools hub for AI agents. Free web tools for humans.",
+          category: "INFRASTRUCTURE",
+          tags: ["x402", "tools", "developer", "crypto", "ai-agents", "web"],
+          website: cfg.siteUrl,
+          docsUrl: `${cfg.siteUrl}/openapi.json`,
+          openApiUrl: `${cfg.siteUrl}/openapi.json`,
+        },
+        method: "POST",
+        description: tool.description,
+        mimeType: "application/json",
+        input: bazaarInputSchema(tool),
+        output: { type: "object" },
+      },
+    },
+  };
+}
+
 /** Конфиг для обычных v2-клиентов (resource — объект). */
-function buildPaymentConfig(cfg: AppConfig, resourceUrl: string, desc: string, priceUsd: number) {
+function buildPaymentConfig(cfg: AppConfig, resourceUrl: string, tool: ToolPricing) {
   return {
     x402Version: 2,
-    resource: { url: resourceUrl, description: desc, mimeType: "application/json" },
-    accepts: [buildAccepts(cfg, priceUsd)],
+    resource: {
+      url: resourceUrl,
+      description: tool.description,
+      mimeType: "application/json",
+    },
+    accepts: [buildAccepts(cfg, tool.priceUsd)],
+    extensions: buildBazaarExtension(cfg, tool),
   };
 }
 
 /** Конфиг для awal/oval (resource — строкой + domain). */
-function buildPaymentConfigOval(cfg: AppConfig, resourceUrl: string, desc: string, priceUsd: number) {
-  const acc = buildAccepts(cfg, priceUsd);
+function buildPaymentConfigOval(cfg: AppConfig, resourceUrl: string, tool: ToolPricing) {
+  const acc = buildAccepts(cfg, tool.priceUsd);
   return {
     x402Version: 2,
     resource: resourceUrl,
-    description: desc,
+    description: tool.description,
     mimeType: "application/json",
     accepts: [{
       scheme: acc.scheme,
@@ -58,6 +103,7 @@ function buildPaymentConfigOval(cfg: AppConfig, resourceUrl: string, desc: strin
       chainId: 8453,
       verifyingContract: USDC_BASE,
     },
+    extensions: buildBazaarExtension(cfg, tool),
   };
 }
 
@@ -113,9 +159,9 @@ export function x402v2(cfg: AppConfig): MiddlewareHandler {
     throw new Error("X402_PAY_TO не задан. Установите `wrangler secret put X402_PAY_TO`.");
   }
 
-  const byPath = new Map<string, { desc: string; priceUsd: number }>();
+  const byPath = new Map<string, ToolPricing>();
   for (const t of Object.values(TOOLS)) {
-    byPath.set(t.path, { desc: t.description, priceUsd: t.priceUsd });
+    byPath.set(t.path, t);
   }
 
   return async (c, next) => {
@@ -134,8 +180,8 @@ export function x402v2(cfg: AppConfig): MiddlewareHandler {
       const ua = (c.req.header("user-agent") || "").toLowerCase();
       const isOval = ua.includes("awal") || ua.includes("oval");
       const config = isOval
-        ? buildPaymentConfigOval(cfg, resourceUrl, tool.desc, tool.priceUsd)
-        : buildPaymentConfig(cfg, resourceUrl, tool.desc, tool.priceUsd);
+        ? buildPaymentConfigOval(cfg, resourceUrl, tool)
+        : buildPaymentConfig(cfg, resourceUrl, tool);
 
       return new Response(JSON.stringify(config), {
         status: 402,
