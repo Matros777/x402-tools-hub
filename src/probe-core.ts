@@ -101,7 +101,11 @@ async function doFetch(
   try {
     const init: RequestInit = {
       method,
-      headers: { accept: "application/json, */*", ...headers },
+      headers: {
+        accept: "application/json, */*",
+        "user-agent": "Mozilla/5.0 (compatible; x402-probe/1.0; +https://x402-tools-hub.ivanbenks7-e96.workers.dev)",
+        ...headers,
+      },
       redirect: follow ? "follow" : "manual",
       signal: ctrl.signal,
     };
