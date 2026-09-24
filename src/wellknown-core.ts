@@ -1,25 +1,38 @@
 /**
  * x402 Tools Hub — Well-Known Reader core.
  *
- * Fetch the discovery surface of any host in one call:
- *   /.well-known/x402-discovery, llms.txt, openapi.json,
- *   robots.txt, agent.json (/.well-known/agent.json), sitemap.xml.
- * Returns a compact "service card".
+ * Discovery-surface reader per canonical DoD:
+ *   input  { "url": "https://host/api/foo" }  → normalized to https://host
+ *   checks only root/canonical discovery paths:
+ *     /.well-known/x402
+ *     /.well-known/agent.json
+ *     /agent.json
+ *     /openapi.json
+ *     /llms.txt
+ *     /robots.txt
+ *   each entry carries: found | missing | error, and source = the ACTUAL
+ *   URL that was probed (not a guessed path).
  *
  * Used by:
- *   - GET  /tools/well-known-reader        (free page)
- *   - POST /api/well-known-reader/lookup   (free, for the page)
- *   - POST /api/well-known-reader          (paid, for agents, $0.001)
+ *   - GET  /tools/well-known          (free page)
+ *   - POST /api/well-known/lookup     (free, for the page)
+ *   - POST /api/well-known            (paid, for agents, $0.001)
  */
 
 export interface WellKnownInput {
-  /** Origin, e.g. https://x402-tools-hub.ivanbenks7-e96.workers.dev */
-  origin: string;
+  /** Any URL on the host; normalized to origin. */
+  url: string;
 }
 
+export type DiscoveryStatus = "found" | "missing" | "error";
+
 export interface WellKnownEntry {
-  path: string;
-  status: number | null;
+  /** Canonical path name, e.g. "/.well-known/x402". */
+  name: string;
+  status: DiscoveryStatus;
+  /** Actual URL that was probed. */
+  source: string;
+  http_status: number | null;
   content_type: string | null;
   bytes: number | null;
   summary: string | null;
@@ -28,20 +41,16 @@ export interface WellKnownEntry {
 export interface WellKnownResult {
   origin: string;
   entries: WellKnownEntry[];
-  has_x402_discovery: boolean;
-  has_llms: boolean;
-  has_openapi: boolean;
-  has_agent_json: boolean;
   notes: string[];
 }
 
 const PATHS = [
-  "/.well-known/x402-discovery",
-  "/llms.txt",
-  "/openapi.json",
-  "/robots.txt",
+  "/.well-known/x402",
   "/.well-known/agent.json",
-  "/sitemap.xml",
+  "/agent.json",
+  "/openapi.json",
+  "/llms.txt",
+  "/robots.txt",
 ];
 
 function summarize(body: string, ct: string | null): string | null {
@@ -52,42 +61,55 @@ function summarize(body: string, ct: string | null): string | null {
 }
 
 export async function readWellKnown(input: WellKnownInput): Promise<WellKnownResult> {
-  const origin = String(input.origin || "").trim().replace(/\/+$/, "");
   const notes: string[] = [];
-  const entries: WellKnownEntry[] = [];
+  const raw = String(input.url || "").trim();
 
-  if (!/^https?:\/\//i.test(origin)) {
-    notes.push("Origin must start with http(s)://");
-    return { origin, entries, has_x402_discovery: false, has_llms: false, has_openapi: false, has_agent_json: false, notes };
+  if (!/^https?:\/\//i.test(raw)) {
+    return { origin: raw, entries: [], notes: ["url must start with http(s)://"] };
   }
 
-  for (const path of PATHS) {
+  // Normalize to origin (strip path/query/hash).
+  let origin: string;
+  try {
+    const u = new URL(raw);
+    origin = u.origin;
+  } catch {
+    return { origin: raw, entries: [], notes: ["cannot parse URL"] };
+  }
+
+  const entries: WellKnownEntry[] = [];
+  for (const name of PATHS) {
+    const source = origin + name;
     try {
-      const r = await fetch(origin + path, { headers: { accept: "*/*" } });
+      const r = await fetch(source, { headers: { accept: "*/*" } });
       const text = await r.text();
       const ct = r.headers.get("content-type");
       entries.push({
-        path,
-        status: r.status,
+        name,
+        status: r.status === 200 ? "found" : r.status < 500 ? "missing" : "error",
+        source,
+        http_status: r.status,
         content_type: ct,
         bytes: text.length,
-        summary: r.status < 400 ? summarize(text, ct) : null,
+        summary: r.status === 200 ? summarize(text, ct) : null,
       });
     } catch (e) {
-      entries.push({ path, status: null, content_type: null, bytes: null, summary: null });
-      notes.push(`${path}: fetch failed`);
+      entries.push({
+        name,
+        status: "error",
+        source,
+        http_status: null,
+        content_type: null,
+        bytes: null,
+        summary: null,
+      });
+      notes.push(`${name}: fetch error`);
     }
   }
 
-  const has = (p: string) => entries.find((e) => e.path === p)?.status === 200;
+  const found = entries.filter((e) => e.status === "found").map((e) => e.name);
+  if (found.length === 0) notes.push("No discovery documents found at this origin.");
+  else notes.push(`Found: ${found.join(", ")}`);
 
-  return {
-    origin,
-    entries,
-    has_x402_discovery: has("/.well-known/x402-discovery"),
-    has_llms: has("/llms.txt"),
-    has_openapi: has("/openapi.json"),
-    has_agent_json: has("/.well-known/agent.json"),
-    notes,
-  };
+  return { origin, entries, notes };
 }

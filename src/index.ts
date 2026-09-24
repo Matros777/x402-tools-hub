@@ -483,7 +483,7 @@ app.post("/api/402-probe/lookup", async (c) => {
 app.post("/api/well-known/lookup", async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const input: WellKnownInput = {
-    origin: body.origin === undefined ? "" : String(body.origin).slice(0, 2000),
+    url: body.url === undefined ? "" : String(body.url).slice(0, 2000),
   };
   try {
     const data = await readWellKnown(input);
@@ -1434,7 +1434,7 @@ app.post("/api/402-probe", async (c) => {
 app.post("/api/well-known", async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const input: WellKnownInput = {
-    origin: body.origin === undefined ? "" : String(body.origin).slice(0, 2000),
+    url: body.url === undefined ? "" : String(body.url).slice(0, 2000),
   };
   try {
     const data = await readWellKnown(input);
