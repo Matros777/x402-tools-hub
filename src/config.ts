@@ -315,6 +315,15 @@ export const TOOLS: Record<string, ToolPricing> = {
     freeForHumans: true,
     category: "crypto",
   },
+
+  "payment-decoder": {
+    path: "/api/payment-decoder",
+    priceUsd: 0.001,
+    description: "Decode a raw PAYMENT-REQUIRED header or 402 body into structured payment fields.",
+    icon: "☴",
+    freeForHumans: true,
+    category: "trust",
+  },
 };
 
 /** Payment + network configuration (values come from worker env vars). */

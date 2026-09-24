@@ -47,6 +47,7 @@ import { agentRoutePage } from "./web/tools/agent-route";
 import { x402ProbePage } from "./web/tools/402-probe";
 import { wellKnownPage } from "./web/tools/well-known";
 import { agentHealthPage } from "./web/tools/agent-health";
+import { paymentDecoderPage } from "./web/tools/payment-decoder";
 import { simulateX402 } from "./simulate-core";
 import { getMerchantTrust } from "./merchant-core";
 import { getAgentRegistry } from "./registry-core";
@@ -58,6 +59,7 @@ import { routeTask, type RouteInput } from "./route-core";
 import { probeEndpoint, type ProbeInput } from "./probe-core";
 import { readWellKnown, type WellKnownInput } from "./wellknown-core";
 import { runAgentHealth, type HealthInput } from "./health-core";
+import { decodePayment, type DecodeInput } from "./decoder-core";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -122,6 +124,7 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "402-probe": x402ProbePage,
   "well-known": wellKnownPage,
   "agent-health": agentHealthPage,
+  "payment-decoder": paymentDecoderPage,
   "address-toolkit": addressToolkitPage,
 };
 
@@ -513,6 +516,16 @@ app.post("/api/agent-health/lookup", async (c) => {
     console.error("agent-health lookup error:", e);
     return c.json({ ok: false, error: "health_failed" }, 502);
   }
+});
+
+// Free lookup for the Payment Decoder page. Pure local parse — no outbound request.
+app.post("/api/payment-decoder/lookup", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const input: DecodeInput = {
+    payload: body.payload === undefined ? "" : String(body.payload).slice(0, 20000),
+  };
+  const data = decodePayment(input);
+  return c.json({ ok: true, data });
 });
 
 /* ------------------------------------------------------------------ */
@@ -1483,6 +1496,17 @@ app.post("/api/agent-health", async (c) => {
     console.error("agent-health error:", e);
     return c.json({ ok: false, error: "health_failed" }, 502);
   }
+});
+
+// Paid tier: Payment Decoder — same payload as the free lookup, x402-protected.
+// POST { "payload": "<PAYMENT-REQUIRED header or 402 body>" }
+app.post("/api/payment-decoder", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const input: DecodeInput = {
+    payload: body.payload === undefined ? "" : String(body.payload).slice(0, 20000),
+  };
+  const data = decodePayment(input);
+  return c.json({ ok: true, data });
 });
 
 /* ------------------------------------------------------------------ */
