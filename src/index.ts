@@ -1190,6 +1190,59 @@ app.post("/api/agent-studio", async (c) => {
   }
 });
 
+// Paid tier: x402 Simulate — same payload as the free lookup, x402-protected.
+app.post("/api/x402-simulate", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const result = simulateX402(body);
+  return c.json({ ok: true, data: result });
+});
+
+// Paid tier: Merchant Trust — reputation for a receiving wallet.
+// POST { "address": "0x…", "limit"?: 200 }
+app.post("/api/merchant-trust", async (c) => {
+  const cfg = getConfig(c.env);
+  if (!cfg.alchemyBaseUrl) {
+    return c.json({ error: "trust_layer_not_configured", hint: "ALCHEMY_BASE_URL secret is missing" }, 503);
+  }
+  const body = await c.req.json().catch(() => ({}));
+  const raw = body.address;
+  if (!isValidEvmAddress(raw)) {
+    return c.json({ error: "address (0x + 40 hex) required" }, 400);
+  }
+  const address = normalizeAddress(raw);
+  const limit = Math.min(Math.max(Number(body.limit) || 200, 1), 500);
+  try {
+    const data = await getMerchantTrust(cfg.alchemyBaseUrl, address, limit);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("merchant-trust error:", e);
+    return c.json({ ok: false, error: "lookup_failed" }, 502);
+  }
+});
+
+// Paid tier: Agent Registry — live directory from seed wallets.
+// POST { "seeds": ["0x…"], "per_seed"?: 50 }
+app.post("/api/agent-registry", async (c) => {
+  const cfg = getConfig(c.env);
+  if (!cfg.alchemyBaseUrl) {
+    return c.json({ error: "trust_layer_not_configured", hint: "ALCHEMY_BASE_URL secret is missing" }, 503);
+  }
+  const body = await c.req.json().catch(() => ({}));
+  const seeds = Array.isArray(body.seeds) ? body.seeds : [];
+  const clean = seeds.filter((s: unknown) => isValidEvmAddress(s)).map((s: string) => normalizeAddress(s));
+  if (clean.length === 0) {
+    return c.json({ error: "seeds (array of 0x + 40 hex addresses) required" }, 400);
+  }
+  const perSeed = Math.min(Math.max(Number(body.per_seed) || 50, 1), 200);
+  try {
+    const data = await getAgentRegistry(cfg.alchemyBaseUrl, clean, perSeed);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("agent-registry error:", e);
+    return c.json({ ok: false, error: "lookup_failed" }, 502);
+  }
+});
+
 // Paid tier: Address Toolkit.
 // POST { "address": "0x…" }
 app.post("/api/address-toolkit", async (c) => {
