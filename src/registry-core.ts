@@ -107,7 +107,7 @@ export async function getAgentRegistry(
     let tier: TrustTier = "new";
     try {
       const passport = await getPassport(alchemyUrl, address);
-      score = passport.score;
+      score = passport.trust_score;
       tier = passport.tier;
     } catch {
       // Unscorable wallets still appear, at the bottom.
@@ -117,7 +117,7 @@ export async function getAgentRegistry(
       address,
       score,
       tier,
-      discovered_via: viaList[0],
+      discovered_via: viaList[0] ?? "",
       seen_as_counterparty_of: viaList.length,
       basescan: BASESCAN_ADDR + address,
     });

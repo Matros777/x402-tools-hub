@@ -196,7 +196,7 @@ export async function getMerchantTrust(
 
   const payers = Array.from(byPayer.values()).sort((a, b) => b.total_usd - a.total_usd);
   const topPayers = payers.slice(0, 10);
-  const topShare = total > 0 && payers.length > 0 ? payers[0].total_usd / total : 0;
+  const topShare = total > 0 && payers.length > 0 ? (payers[0]?.total_usd ?? 0) / total : 0;
 
   const txCount = receipts.length;
   const avg = txCount ? +(total / txCount).toFixed(6) : 0;

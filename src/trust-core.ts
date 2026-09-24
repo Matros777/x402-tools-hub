@@ -52,14 +52,43 @@ async function alchemy<T>(url: string, method: string, params: unknown[]): Promi
  * direction = "in"  → transfers where the address is the recipient
  * direction = "out" → transfers where the address is the sender
  */
+/* Base ~2s blocks -> ~43_200 blocks/day. Default lookback window: 90 days. */
+const BLOCKS_PER_DAY = 43_200;
+const DEFAULT_LOOKBACK_BLOCKS = 90 * BLOCKS_PER_DAY;
+
+/* Isolate-level caches (per Worker instance, no DB). */
+let latestBlockCache: { block: number; at: number } | null = null;
+const transferCache = new Map<string, { at: number; data: RawTransfer[] }>();
+const LATEST_TTL_MS = 30_000;
+const TRANSFER_TTL_MS = 5 * 60_000;
+const CACHE_MAX_ENTRIES = 200;
+
+async function getLatestBlock(alchemyUrl: string): Promise<number> {
+  if (latestBlockCache && Date.now() - latestBlockCache.at < LATEST_TTL_MS) {
+    return latestBlockCache.block;
+  }
+  const hex = await alchemy<string>(alchemyUrl, "eth_blockNumber", []);
+  const block = Number(BigInt(hex));
+  latestBlockCache = { block, at: Date.now() };
+  return block;
+}
+
 async function fetchUsdcTransfers(
   alchemyUrl: string,
   direction: "in" | "out",
   address: string,
   limit: number,
+  lookbackBlocks: number = DEFAULT_LOOKBACK_BLOCKS,
 ): Promise<RawTransfer[]> {
+  const key = `${direction}:${address.toLowerCase()}:${limit}:${lookbackBlocks}`;
+  const hit = transferCache.get(key);
+  if (hit && Date.now() - hit.at < TRANSFER_TTL_MS) return hit.data;
+
+  const latest = await getLatestBlock(alchemyUrl);
+  const fromBlockNum = Math.max(0, latest - lookbackBlocks);
+
   const filter: Record<string, unknown> = {
-    fromBlock: "0x0",
+    fromBlock: "0x" + fromBlockNum.toString(16),
     toBlock: "latest",
     contractAddresses: [USDC_BASE],
     category: ["erc20"],
@@ -75,7 +104,14 @@ async function fetchUsdcTransfers(
     "alchemy_getAssetTransfers",
     [filter],
   );
-  return res.transfers ?? [];
+  const data = res.transfers ?? [];
+
+  if (transferCache.size >= CACHE_MAX_ENTRIES) {
+    const firstKey = transferCache.keys().next().value;
+    if (firstKey) transferCache.delete(firstKey);
+  }
+  transferCache.set(key, { at: Date.now(), data });
+  return data;
 }
 
 function toReceipt(t: RawTransfer): Receipt {
