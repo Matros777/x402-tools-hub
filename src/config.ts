@@ -324,6 +324,15 @@ export const TOOLS: Record<string, ToolPricing> = {
     freeForHumans: true,
     category: "trust",
   },
+
+  "receipt-notary": {
+    path: "/api/receipt-notary",
+    priceUsd: 0.001,
+    description: "Notarize a paid response: SHA-256 + timestamp + resource + tx into a compact receipt.",
+    icon: "❀",
+    freeForHumans: true,
+    category: "trust",
+  },
 };
 
 /** Payment + network configuration (values come from worker env vars). */

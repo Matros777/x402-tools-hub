@@ -48,6 +48,7 @@ import { x402ProbePage } from "./web/tools/402-probe";
 import { wellKnownPage } from "./web/tools/well-known";
 import { agentHealthPage } from "./web/tools/agent-health";
 import { paymentDecoderPage } from "./web/tools/payment-decoder";
+import { receiptNotaryPage } from "./web/tools/receipt-notary";
 import { simulateX402 } from "./simulate-core";
 import { getMerchantTrust } from "./merchant-core";
 import { getAgentRegistry } from "./registry-core";
@@ -60,6 +61,7 @@ import { probeEndpoint, type ProbeInput } from "./probe-core";
 import { readWellKnown, type WellKnownInput } from "./wellknown-core";
 import { runAgentHealth, type HealthInput } from "./health-core";
 import { decodePayment, type DecodeInput } from "./decoder-core";
+import { notarize, type NotaryInput, MAX_BODY } from "./notary-core";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -125,6 +127,7 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "well-known": wellKnownPage,
   "agent-health": agentHealthPage,
   "payment-decoder": paymentDecoderPage,
+  "receipt-notary": receiptNotaryPage,
   "address-toolkit": addressToolkitPage,
 };
 
@@ -525,6 +528,23 @@ app.post("/api/payment-decoder/lookup", async (c) => {
     payload: body.payload === undefined ? "" : String(body.payload).slice(0, 20000),
   };
   const data = decodePayment(input);
+  return c.json({ ok: true, data });
+});
+
+// Free lookup for the Receipt Notary page. No outbound payment, no refetch.
+app.post("/api/receipt-notary/lookup", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const input: NotaryInput = {
+    resource: body.resource === undefined ? undefined : String(body.resource).slice(0, 2000),
+    sha256: body.sha256 === undefined ? undefined : String(body.sha256),
+    body: body.body === undefined ? undefined : String(body.body),
+    payment_tx: body.payment_tx === undefined ? undefined : String(body.payment_tx),
+    content_type: body.content_type === undefined ? undefined : String(body.content_type),
+  };
+  const data = await notarize(input);
+  if (data.bytes !== null && data.bytes > MAX_BODY && data.receipt_id === "") {
+    return c.json({ ok: false, error: "body_too_large", message: `Body exceeds ${MAX_BODY} bytes — send only a pre-computed sha256.` }, 413);
+  }
   return c.json({ ok: true, data });
 });
 
@@ -1506,6 +1526,24 @@ app.post("/api/payment-decoder", async (c) => {
     payload: body.payload === undefined ? "" : String(body.payload).slice(0, 20000),
   };
   const data = decodePayment(input);
+  return c.json({ ok: true, data });
+});
+
+// Paid tier: Receipt Notary — same payload as the free lookup, x402-protected.
+// POST { "resource"?, "sha256"?, "body"?, "payment_tx"?, "content_type"? }
+app.post("/api/receipt-notary", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const input: NotaryInput = {
+    resource: body.resource === undefined ? undefined : String(body.resource).slice(0, 2000),
+    sha256: body.sha256 === undefined ? undefined : String(body.sha256),
+    body: body.body === undefined ? undefined : String(body.body),
+    payment_tx: body.payment_tx === undefined ? undefined : String(body.payment_tx),
+    content_type: body.content_type === undefined ? undefined : String(body.content_type),
+  };
+  const data = await notarize(input);
+  if (data.bytes !== null && data.bytes > MAX_BODY && data.receipt_id === "") {
+    return c.json({ ok: false, error: "body_too_large", message: `Body exceeds ${MAX_BODY} bytes — send only a pre-computed sha256.` }, 413);
+  }
   return c.json({ ok: true, data });
 });
 
