@@ -90,6 +90,30 @@ export const TOOLS: Record<string, ToolPricing> = {
     freeForHumans: true,
     category: "trust",
   },
+  "x402-simulate": {
+    path: "/api/x402-simulate",
+    priceUsd: 0.001,
+    description: "Cost modeller for x402 workloads: effective price per call, network overhead and break-even.",
+    icon: "∑",
+    freeForHumans: true,
+    category: "trust",
+  },
+  "merchant-trust": {
+    path: "/api/merchant-trust",
+    priceUsd: 0.001,
+    description: "Reputation for a receiving wallet: volume, distinct payers, frequency and concentration risk.",
+    icon: "◈",
+    freeForHumans: true,
+    category: "trust",
+  },
+  "agent-registry": {
+    path: "/api/agent-registry",
+    priceUsd: 0.001,
+    description: "Live, stateless directory of agents and merchants built one hop from seed wallets on Base.",
+    icon: "⛓",
+    freeForHumans: true,
+    category: "trust",
+  },
 
   /* ---------------- Core ---------------- */
   "web-markdown": {
