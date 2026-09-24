@@ -1110,8 +1110,16 @@ app.get("/favicon.ico", (c) => c.redirect("/favicon.svg", 301));
 
 app.get("/robots.txt", (c) => {
   const cfg = getConfig(c.env);
+  const host = cfg.siteUrl.replace(/^https?:\/\//, "");
   return c.body(
-    `User-agent: *\nAllow: /\n\nSitemap: ${cfg.siteUrl}/sitemap.xml\n`,
+    [
+      "User-agent: *",
+      "Allow: /",
+      "",
+      `Host: ${host}`,
+      `Sitemap: ${cfg.siteUrl}/sitemap.xml`,
+      "",
+    ].join("\n"),
     200,
     { "Content-Type": "text/plain; charset=utf-8" }
   );
@@ -1119,16 +1127,17 @@ app.get("/robots.txt", (c) => {
 
 app.get("/sitemap.xml", (c) => {
   const cfg = getConfig(c.env);
+  const today = new Date().toISOString().slice(0, 10);
   const tools = Object.keys(TOOLS)
     .map(
       (name) =>
-        `  <url><loc>${cfg.siteUrl}/tools/${name}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`
+        `  <url><loc>${cfg.siteUrl}/tools/${name}</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`
     )
     .join("\n");
   const xml =
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-    `  <url><loc>${cfg.siteUrl}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>\n` +
+    `  <url><loc>${cfg.siteUrl}/</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>\n` +
     tools +
     `\n</urlset>\n`;
   return c.body(xml, 200, { "Content-Type": "application/xml; charset=utf-8" });
@@ -1139,7 +1148,8 @@ app.notFound((c) =>
     `<!DOCTYPE html><html lang="en"><head>` +
       `<meta charset="utf-8">` +
       `<meta name="viewport" content="width=device-width,initial-scale=1">` +
-      `<title>404 — Not found</title>` +
+      `<meta name="robots" content="noindex,follow">` +
+      `<title>404 — Page not found | x402 Tools Hub</title>` +
       `<link rel="icon" href="/favicon.svg" type="image/svg+xml">` +
       `</head><body style="background:#0b0f0e;color:#e6f0ec;font-family:monospace;padding:3rem;text-align:center">` +
       `<h1 style="color:#ffb454">404</h1><p>Not found</p>` +

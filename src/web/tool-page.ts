@@ -1,6 +1,9 @@
 /**
  * x402 Tools Hub — generic tool page shell
  * Shared chrome (nav, sidebar grouped by category, search, footer) + a content slot.
+ *
+ * SEO: SoftwareApplication + BreadcrumbList + HowTo JSON-LD, meta robots,
+ * preconnect/preload for style.css.
  */
 
 import {
@@ -10,6 +13,17 @@ import {
   type AppConfig,
   type ToolCategory,
 } from "../config";
+import { humanName, jsonLdScript } from "./landing";
+
+/** Escape HTML special characters in interpolated strings. */
+function esc(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 export interface ToolPageOptions {
   /** Tool slug, e.g. "json-studio" */
@@ -75,14 +89,14 @@ function sidebarMarkup(active: string): string {
         const cls = e.name === active ? " class=\"active\"" : "";
         return (
           `<a href="/tools/${e.name}"${cls} data-name="${e.name}">` +
-          `<span class="s-icon">${e.icon}</span>${e.name}</a>`
+          `<span class="s-icon">${esc(e.icon)}</span>${esc(e.name)}</a>`
         );
       })
       .join("");
 
     groups.push(
       `<div class="sidebar-group" data-category="${cat}">` +
-        `<div class="sidebar-group-title">${CATEGORY_LABELS[cat]}</div>` +
+        `<div class="sidebar-group-title">${esc(CATEGORY_LABELS[cat])}</div>` +
         links +
         `</div>`
     );
@@ -140,7 +154,7 @@ function guideMarkup(opts: ToolPageOptions): string {
 
   const blocks: string[] = [];
   if (steps.length > 0) {
-    const items = steps.map((s) => `<li>${s}</li>`).join("");
+    const items = steps.map((s) => `<li>${esc(s)}</li>`).join("");
     blocks.push(
       `<div class="guide-block">` +
         `<h2 class="guide-title">How to use</h2>` +
@@ -149,7 +163,7 @@ function guideMarkup(opts: ToolPageOptions): string {
     );
   }
   if (cases.length > 0) {
-    const items = cases.map((s) => `<li>${s}</li>`).join("");
+    const items = cases.map((s) => `<li>${esc(s)}</li>`).join("");
     blocks.push(
       `<div class="guide-block">` +
         `<h2 class="guide-title">Where it applies</h2>` +
@@ -163,34 +177,80 @@ function guideMarkup(opts: ToolPageOptions): string {
 
 export function renderToolPage(cfg: AppConfig, opts: ToolPageOptions): string {
   const tool = TOOLS[opts.name];
-  const title = opts.title ?? opts.name;
+  const name = opts.name;
+  const hName = humanName(name);
+  const title = opts.title ?? hName;
   const price = tool ? tool.priceUsd : 0;
   const description = tool?.description ?? "";
+  const siteUrl = cfg.siteUrl;
+  const pageUrl = `${siteUrl}/tools/${name}`;
 
   const bodyScript = opts.script ?? "";
   const combinedScript = sidebarScript() + (bodyScript ? "\n" + bodyScript : "");
+
+  const steps = opts.howToUse ?? [];
+  const graph: unknown[] = [
+    {
+      "@type": "SoftwareApplication",
+      name: title,
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web",
+      description,
+      url: pageUrl,
+      offers: {
+        "@type": "Offer",
+        price: String(price),
+        priceCurrency: "USD",
+      },
+      isPartOf: { "@id": `${siteUrl}/#website` },
+    },
+    {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: `${siteUrl}/` },
+        { "@type": "ListItem", position: 2, name: "Tools", item: `${siteUrl}/#tools` },
+        { "@type": "ListItem", position: 3, name: hName, item: pageUrl },
+      ],
+    },
+  ];
+  if (steps.length > 0) {
+    graph.push({
+      "@type": "HowTo",
+      name: `How to use ${hName}`,
+      step: steps.map((s, i) => ({
+        "@type": "HowToStep",
+        position: i + 1,
+        text: s,
+      })),
+    });
+  }
+
+  const jsonLd = { "@context": "https://schema.org", "@graph": graph };
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${title} — ${cfg.siteName}</title>
-<meta name="description" content="${description}">
-<meta name="keywords" content="${opts.name}, x402, paid API, AI agents, ${cfg.network}, developer tool">
+<title>${esc(title)} — ${esc(cfg.siteName)}</title>
+<meta name="description" content="${esc(description)}">
+<meta name="keywords" content="${esc(opts.name)}, x402, paid API, AI agents, ${esc(cfg.network)}, developer tool">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+<link rel="preload" as="style" href="/style.css">
 <link rel="stylesheet" href="/style.css">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="canonical" href="${cfg.siteUrl}/tools/${opts.name}">
+<link rel="canonical" href="${esc(pageUrl)}">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="${cfg.siteName}">
-<meta property="og:title" content="${title} — ${cfg.siteName}">
-<meta property="og:description" content="${description}">
-<meta property="og:url" content="${cfg.siteUrl}/tools/${opts.name}">
-<meta property="og:image" content="${cfg.siteUrl}/og.png">
+<meta property="og:site_name" content="${esc(cfg.siteName)}">
+<meta property="og:title" content="${esc(title)} — ${esc(cfg.siteName)}">
+<meta property="og:description" content="${esc(description)}">
+<meta property="og:url" content="${esc(pageUrl)}">
+<meta property="og:image" content="${esc(siteUrl)}/og.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="${title} — ${cfg.siteName}">
-<meta name="twitter:description" content="${description}">
-<meta name="twitter:image" content="${cfg.siteUrl}/og.png">
+<meta name="twitter:title" content="${esc(title)} — ${esc(cfg.siteName)}">
+<meta name="twitter:description" content="${esc(description)}">
+<meta name="twitter:image" content="${esc(siteUrl)}/og.png">
+<script type="application/ld+json">${jsonLdScript(jsonLd)}</script>
 </head>
 <body>
 
@@ -201,7 +261,7 @@ export function renderToolPage(cfg: AppConfig, opts: ToolPageOptions): string {
   <div class="nav-inner">
     <a class="logo" href="/">
       <span class="logo-mark">◇</span>
-      <span class="logo-text">${cfg.siteName}</span>
+      <span class="logo-text">${esc(cfg.siteName)}</span>
     </a>
     <nav class="nav-links">
       <a href="/#tools">Tools</a>
@@ -219,13 +279,18 @@ export function renderToolPage(cfg: AppConfig, opts: ToolPageOptions): string {
     </nav>
     <div class="sidebar-foot">
       <span class="tag tag-free">web: free</span>
-      <span class="tag tag-paid">api: $${price} USDC</span>
+      <span class="tag tag-paid">api: $${esc(String(price))} USDC</span>
     </div>
   </aside>
 
   <section class="tool-main">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="/">Home</a> <span>/</span>
+      <a href="/#tools">Tools</a> <span>/</span>
+      <span aria-current="page">${esc(hName)}</span>
+    </nav>
     <div class="tool-head">
-      <h1>${title}</h1>
+      <h1>${esc(title)}</h1>
       <div class="privacy-badge">100% in your browser · data never leaves your device</div>
     </div>
     <p class="tool-intro">${opts.intro}</p>
@@ -236,7 +301,7 @@ export function renderToolPage(cfg: AppConfig, opts: ToolPageOptions): string {
 
 <footer class="footer">
   <div class="footer-inner">
-    <span>${cfg.siteName}</span>
+    <span>${esc(cfg.siteName)}</span>
     <span class="footer-sep">·</span>
     <a href="/llms.txt">llms.txt</a>
     <span class="footer-sep">·</span>
@@ -244,7 +309,7 @@ export function renderToolPage(cfg: AppConfig, opts: ToolPageOptions): string {
     <span class="footer-sep">·</span>
     <a href="/.well-known/agent.json">agent.json</a>
   </div>
-  <div class="footer-copy">payments on ${cfg.network} · x402 protocol</div>
+  <div class="footer-copy">payments on ${esc(cfg.network)} · x402 protocol</div>
 </footer>
 
 <script>

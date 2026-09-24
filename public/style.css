@@ -1124,3 +1124,34 @@ section { padding: 72px 0; }
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- breadcrumbs ------------------------------------------- */
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 18px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.breadcrumbs a {
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: color .15s ease;
+}
+
+.breadcrumbs a:hover {
+  color: var(--accent);
+}
+
+.breadcrumbs > span {
+  color: var(--border-hi);
+}
+
+.breadcrumbs > span[aria-current="page"] {
+  color: var(--text);
+}
