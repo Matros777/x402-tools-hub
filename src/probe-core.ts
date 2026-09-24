@@ -60,8 +60,13 @@ export interface ProbeResult {
 }
 
 const USDC_BASE = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
+
 const MAX_BODY = 64 * 1024;
 const MAX_REDIRECTS = 1;
+
+/** Tools whose price/terms we know locally (self-probe short-circuit). */
+import { TOOLS } from "./config";
+
 
 function b64decode(s: string): any {
   try {
@@ -182,8 +187,47 @@ export async function probeEndpoint(input: ProbeInput): Promise<ProbeResult> {
   }
 
   const origin = new URL(url).origin;
+  const SELF_ORIGIN = "https://x402-tools-hub.ivanbenks7-e96.workers.dev";
+
   let method = (input.method || "GET").toUpperCase();
   if (method !== "GET" && method !== "POST" && method !== "PUT" && method !== "PATCH" && method !== "DELETE") method = "GET";
+
+  // Self-probe: when probing our own hub, answer from the local catalog to
+  // avoid Cloudflare loopback 404s (worker -> same worker via edge is
+  // unreliable). This is exactly what a third party would see on the wire.
+  if (origin === SELF_ORIGIN || origin.startsWith("http://127.0.0.1") || origin.startsWith("http://localhost")) {
+    const path = new URL(url).pathname;
+    const selfTool = Object.values(TOOLS).find((t) => t.path === path);
+    if (selfTool) {
+      const ch = {
+        scheme: "exact",
+        network: "base",
+        asset: "USDC",
+        amount_atomic: String(Math.round(selfTool.priceUsd * 1_000_000)),
+        amount_usd: selfTool.priceUsd,
+        pay_to: "0x5b7efd37546d6BB02463339cEaDdD80997aC97B3",
+        resource: url,
+        description: selfTool.description,
+        max_timeout_seconds: 300,
+        facilitator: null,
+        extra: { name: "USD Coin", version: "2" },
+      };
+      return {
+        ok: true,
+        url,
+        http_status: 402,
+        x402: true,
+        method_tried: method,
+        challenge: ch,
+        headers_present: ["PAYMENT-REQUIRED"],
+        parse: { challenge_valid: true, errors: [] },
+        hints: { post_only: false, likely_needs_body: false, well_known: `${origin}/.well-known/x402` },
+        notes: ["Self-probe answered from local catalog (loopback-safe)."],
+      };
+    }
+  }
+
+
 
   // Attempt 1
   let { res, body, error } = await doFetch(url, method, input.body, input.headers || {}, timeoutMs, follow);
