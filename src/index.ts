@@ -44,6 +44,7 @@ import { addressToolkitPage } from "./web/tools/address-toolkit";
 import { baseGasPage } from "./web/tools/base-gas";
 import { agentIntelPage } from "./web/tools/agent-intel";
 import { agentRoutePage } from "./web/tools/agent-route";
+import { x402ProbePage } from "./web/tools/402-probe";
 import { simulateX402 } from "./simulate-core";
 import { getMerchantTrust } from "./merchant-core";
 import { getAgentRegistry } from "./registry-core";
@@ -52,6 +53,7 @@ import { describeAddress } from "./address-core";
 import { getBaseGas } from "./gas-core";
 import { runAgentIntel, type AgentIntelInput } from "./agent-intel-core";
 import { routeTask, type RouteInput } from "./route-core";
+import { probeEndpoint, type ProbeInput } from "./probe-core";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -113,6 +115,7 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "base-gas": baseGasPage,
   "agent-intel": agentIntelPage,
   "agent-route": agentRoutePage,
+  "402-probe": x402ProbePage,
   "address-toolkit": addressToolkitPage,
 };
 
@@ -172,7 +175,22 @@ app.get("/openapi.json", (c) => {
       post: {
         operationId: name,
         summary: t.description,
-        responses: { "200": { description: "OK" }, "402": { description: "Payment Required" } },
+        description: `x402 paid endpoint: returns 402 with payment requirements; retry with X-PAYMENT after paying $${t.priceUsd} USDC.`,
+        requestBody: {
+          required: false,
+          content: {
+            "application/json": {
+              schema: { type: "object", additionalProperties: true },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "OK" },
+          "402": {
+            description: "Payment Required",
+            content: { "application/json": { schema: { type: "object" } } },
+          },
+        },
       },
     };
   }
@@ -408,7 +426,7 @@ app.post("/api/agent-intel/lookup", async (c) => {
   const cfg = getConfig(c.env);
   const body = await c.req.json().catch(() => ({}));
   const input: AgentIntelInput = {
-    url: body.url === undefined ? undefined : String(body.url).slice(0, 2000),
+    url: body.url === undefined ? "" : String(body.url).slice(0, 2000),
     seed: body.seed === undefined ? undefined : String(body.seed),
     address: body.address === undefined ? undefined : String(body.address),
     per_seed: body.per_seed === undefined ? undefined : Number(body.per_seed),
@@ -435,6 +453,27 @@ app.post("/api/agent-route/lookup", async (c) => {
   };
   const data = routeTask(input);
   return c.json({ ok: true, data });
+});
+
+// Free lookup for the 402 Probe page. Stateless: one unpaid request, parse the 402.
+app.post("/api/402-probe/lookup", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const input: ProbeInput = {
+    url: body.url === undefined ? "" : String(body.url).slice(0, 2000),
+    method: body.method === undefined ? undefined : String(body.method),
+    body: body.body,
+    headers: body.headers && typeof body.headers === "object" ? body.headers : undefined,
+    follow: body.follow === undefined ? undefined : Boolean(body.follow),
+    timeout_ms: body.timeout_ms === undefined ? undefined : Number(body.timeout_ms),
+    mode: body.mode === "describe" ? "describe" : "challenge",
+  };
+  try {
+    const data = await probeEndpoint(input);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("402-probe lookup error:", e);
+    return c.json({ ok: false, error: "probe_failed" }, 502);
+  }
 });
 
 /* ------------------------------------------------------------------ */
@@ -1320,7 +1359,7 @@ app.post("/api/agent-intel", async (c) => {
   const cfg = getConfig(c.env);
   const body = await c.req.json().catch(() => ({}));
   const input: AgentIntelInput = {
-    url: body.url === undefined ? undefined : String(body.url).slice(0, 2000),
+    url: body.url === undefined ? "" : String(body.url).slice(0, 2000),
     seed: body.seed === undefined ? undefined : String(body.seed),
     address: body.address === undefined ? undefined : String(body.address),
     per_seed: body.per_seed === undefined ? undefined : Number(body.per_seed),
@@ -1348,6 +1387,28 @@ app.post("/api/agent-route", async (c) => {
   };
   const data = routeTask(input);
   return c.json({ ok: true, data });
+});
+
+// Paid tier: 402 Probe — same payload as the free lookup, x402-protected.
+// POST { "url", "method"?, "body"?, "headers"?, "follow"?, "timeout_ms"?, "mode"? }
+app.post("/api/402-probe", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const input: ProbeInput = {
+    url: body.url === undefined ? "" : String(body.url).slice(0, 2000),
+    method: body.method === undefined ? undefined : String(body.method),
+    body: body.body,
+    headers: body.headers && typeof body.headers === "object" ? body.headers : undefined,
+    follow: body.follow === undefined ? undefined : Boolean(body.follow),
+    timeout_ms: body.timeout_ms === undefined ? undefined : Number(body.timeout_ms),
+    mode: body.mode === "describe" ? "describe" : "challenge",
+  };
+  try {
+    const data = await probeEndpoint(input);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("402-probe error:", e);
+    return c.json({ ok: false, error: "probe_failed" }, 502);
+  }
 });
 
 /* ------------------------------------------------------------------ */
@@ -1410,6 +1471,54 @@ app.get("/.well-known/402index-verify.txt", (c) =>
     "Cache-Control": "no-store",
   })
 );
+
+// Bazaar/x402 manifest — machine-readable list of every paid resource.
+// This is what crawlers check BEFORE hitting individual endpoints.
+app.get("/.well-known/x402", (c) => {
+  const cfg = getConfig(c.env);
+  const siteUrl = cfg.siteUrl;
+  const acc = {
+    scheme: "exact",
+    network: "eip155:8453",
+    asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    payTo: cfg.payTo ?? "",
+    maxTimeoutSeconds: 300,
+    extra: { name: "USD Coin", version: "2" },
+  };
+  return c.json({
+    x402Version: 2,
+    provider: {
+      name: cfg.siteName,
+      website: siteUrl,
+      docsUrl: `${siteUrl}/openapi.json`,
+      description: "Paid tools hub for AI agents. Free web tools for humans.",
+      category: "INFRASTRUCTURE",
+      tags: ["x402", "tools", "developer", "crypto", "ai-agents", "web"],
+    },
+    resources: Object.entries(TOOLS).map(([name, t]) => ({
+      name,
+      resource: `${siteUrl}${t.path}`,
+      type: "http",
+      x402Version: 2,
+      method: "POST",
+      description: t.description,
+      mimeType: "application/json",
+      accepts: [{ ...acc, amount: Math.round(t.priceUsd * 1_000_000).toString() }],
+      metadata: {
+        provider: { name: cfg.siteName, category: "INFRASTRUCTURE" },
+        path: t.path,
+        method: "POST",
+        description: t.description,
+        mimeType: "application/json",
+        input: { type: "object", properties: {} },
+        output: { type: "object" },
+        supportsVanillax402: true,
+        supportsCircleGateway: false,
+        siwx: false,
+      },
+    })),
+  });
+});
 
 app.get("/.well-known/x402-discovery", (c) => {
   const cfg = getConfig(c.env);

@@ -272,6 +272,15 @@ export const TOOLS: Record<string, ToolPricing> = {
     category: "trust",
   },
 
+  "402-probe": {
+    path: "/api/402-probe",
+    priceUsd: 0.002,
+    description: "Probe any URL: is it a live x402 endpoint, and what are its exact payment terms?",
+    icon: "⚙",
+    freeForHumans: true,
+    category: "trust",
+  },
+
   "address-toolkit": {
     path: "/api/address-toolkit",
     priceUsd: 0.001,
