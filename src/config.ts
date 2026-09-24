@@ -115,6 +115,15 @@ export const TOOLS: Record<string, ToolPricing> = {
     category: "trust",
   },
 
+  "agent-studio": {
+    path: "/api/agent-studio",
+    priceUsd: 0.002,
+    description: "Build an x402 agent from a short description: manifest, capability check and a dry-run cost model.",
+    icon: "⚒",
+    freeForHumans: true,
+    category: "trust",
+  },
+
   /* ---------------- Core ---------------- */
   "web-markdown": {
     path: "/api/web-markdown",

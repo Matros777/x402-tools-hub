@@ -39,9 +39,11 @@ import { getReceipts, getPassport } from "./trust-core";
 import { x402SimulatePage } from "./web/tools/x402-simulate";
 import { merchantTrustPage } from "./web/tools/merchant-trust";
 import { agentRegistryPage } from "./web/tools/agent-registry";
+import { agentStudioPage } from "./web/tools/agent-studio";
 import { simulateX402 } from "./simulate-core";
 import { getMerchantTrust } from "./merchant-core";
 import { getAgentRegistry } from "./registry-core";
+import { dryRunAgent, type AgentInput } from "./agent-core";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -99,6 +101,7 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "x402-simulate": x402SimulatePage,
   "merchant-trust": merchantTrustPage,
   "agent-registry": agentRegistryPage,
+  "agent-studio": agentStudioPage,
 };
 
 app.get("/tools/:name", (c) => {
@@ -325,6 +328,30 @@ app.post("/api/agent-registry/lookup", async (c) => {
   } catch (e) {
     console.error("agent-registry lookup error:", e);
     return c.json({ ok: false, error: "lookup_failed" }, 502);
+  }
+});
+
+// Free lookup for the Agent Studio page. Stateless: builds an agent.json
+// manifest, checks hub capabilities and models cost. Optional watch-only
+// trust check runs only when the caller supplies a valid 0x address.
+app.post("/api/agent-studio/lookup", async (c) => {
+  const cfg = getConfig(c.env);
+  const body = await c.req.json().catch(() => ({}));
+  const input: AgentInput = {
+    name: String(body.name ?? "").slice(0, 80),
+    goal: body.goal === undefined ? undefined : String(body.goal).slice(0, 400),
+    tools: Array.isArray(body.tools) ? body.tools.filter((x: unknown) => typeof x === "string").slice(0, 64) : [],
+    calls_per_month: body.calls_per_month === undefined ? undefined : Number(body.calls_per_month),
+    subscription_usd: body.subscription_usd === undefined ? undefined : Number(body.subscription_usd),
+    wallet: body.wallet === undefined ? undefined : String(body.wallet),
+    network: body.network === undefined ? undefined : String(body.network),
+  };
+  try {
+    const data = await dryRunAgent(input, cfg);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("agent-studio lookup error:", e);
+    return c.json({ ok: false, error: "dry_run_failed" }, 502);
   }
 });
 
@@ -1095,6 +1122,29 @@ app.post("/api/agent-passport", async (c) => {
   } catch (e) {
     console.error("agent-passport error:", e);
     return c.json({ ok: false, error: "passport_failed" }, 502);
+  }
+});
+
+// Paid tier: Agent Studio — same payload as the free lookup, x402-protected.
+// POST { name, goal?, tools[], calls_per_month?, subscription_usd?, wallet? }
+app.post("/api/agent-studio", async (c) => {
+  const cfg = getConfig(c.env);
+  const body = await c.req.json().catch(() => ({}));
+  const input: AgentInput = {
+    name: String(body.name ?? "").slice(0, 80),
+    goal: body.goal === undefined ? undefined : String(body.goal).slice(0, 400),
+    tools: Array.isArray(body.tools) ? body.tools.filter((x: unknown) => typeof x === "string").slice(0, 64) : [],
+    calls_per_month: body.calls_per_month === undefined ? undefined : Number(body.calls_per_month),
+    subscription_usd: body.subscription_usd === undefined ? undefined : Number(body.subscription_usd),
+    wallet: body.wallet === undefined ? undefined : String(body.wallet),
+    network: body.network === undefined ? undefined : String(body.network),
+  };
+  try {
+    const data = await dryRunAgent(input, cfg);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("agent-studio error:", e);
+    return c.json({ ok: false, error: "dry_run_failed" }, 502);
   }
 });
 
