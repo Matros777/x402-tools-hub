@@ -42,12 +42,14 @@ import { agentRegistryPage } from "./web/tools/agent-registry";
 import { agentStudioPage } from "./web/tools/agent-studio";
 import { addressToolkitPage } from "./web/tools/address-toolkit";
 import { baseGasPage } from "./web/tools/base-gas";
+import { agentIntelPage } from "./web/tools/agent-intel";
 import { simulateX402 } from "./simulate-core";
 import { getMerchantTrust } from "./merchant-core";
 import { getAgentRegistry } from "./registry-core";
 import { dryRunAgent, type AgentInput } from "./agent-core";
 import { describeAddress } from "./address-core";
 import { getBaseGas } from "./gas-core";
+import { runAgentIntel, type AgentIntelInput } from "./agent-intel-core";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -107,6 +109,7 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "agent-registry": agentRegistryPage,
   "agent-studio": agentStudioPage,
   "base-gas": baseGasPage,
+  "agent-intel": agentIntelPage,
   "address-toolkit": addressToolkitPage,
 };
 
@@ -394,6 +397,25 @@ app.post("/api/base-gas/lookup", async (c) => {
   } catch (e) {
     console.error("base-gas lookup error:", e);
     return c.json({ ok: false, error: "gas_failed" }, 502);
+  }
+});
+
+// Free lookup for the Agent Intelligence page. Pipeline: content + registry + passport.
+app.post("/api/agent-intel/lookup", async (c) => {
+  const cfg = getConfig(c.env);
+  const body = await c.req.json().catch(() => ({}));
+  const input: AgentIntelInput = {
+    url: body.url === undefined ? undefined : String(body.url).slice(0, 2000),
+    seed: body.seed === undefined ? undefined : String(body.seed),
+    address: body.address === undefined ? undefined : String(body.address),
+    per_seed: body.per_seed === undefined ? undefined : Number(body.per_seed),
+  };
+  try {
+    const data = await runAgentIntel(input, cfg.alchemyBaseUrl);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("agent-intel lookup error:", e);
+    return c.json({ ok: false, error: "intel_failed" }, 502);
   }
 });
 
@@ -1271,6 +1293,26 @@ app.post("/api/base-gas", async (c) => {
   } catch (e) {
     console.error("base-gas error:", e);
     return c.json({ ok: false, error: "gas_failed" }, 502);
+  }
+});
+
+// Paid tier: Agent Intelligence — same payload as the free lookup, x402-protected.
+// POST { "url"?, "seed"?, "address"?, "per_seed"? }
+app.post("/api/agent-intel", async (c) => {
+  const cfg = getConfig(c.env);
+  const body = await c.req.json().catch(() => ({}));
+  const input: AgentIntelInput = {
+    url: body.url === undefined ? undefined : String(body.url).slice(0, 2000),
+    seed: body.seed === undefined ? undefined : String(body.seed),
+    address: body.address === undefined ? undefined : String(body.address),
+    per_seed: body.per_seed === undefined ? undefined : Number(body.per_seed),
+  };
+  try {
+    const data = await runAgentIntel(input, cfg.alchemyBaseUrl);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("agent-intel error:", e);
+    return c.json({ ok: false, error: "intel_failed" }, 502);
   }
 });
 

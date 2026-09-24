@@ -254,6 +254,15 @@ export const TOOLS: Record<string, ToolPricing> = {
     category: "crypto",
   },
 
+  "agent-intel": {
+    path: "/api/agent-intel",
+    priceUsd: 0.002,
+    description: "Agent Intelligence: read a page as Markdown, discover counterparties and trust-score a wallet in one pipeline.",
+    icon: "⚓",
+    freeForHumans: true,
+    category: "trust",
+  },
+
   "address-toolkit": {
     path: "/api/address-toolkit",
     priceUsd: 0.001,
