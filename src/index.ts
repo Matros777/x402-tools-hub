@@ -46,6 +46,7 @@ import { agentIntelPage } from "./web/tools/agent-intel";
 import { agentRoutePage } from "./web/tools/agent-route";
 import { x402ProbePage } from "./web/tools/402-probe";
 import { wellKnownPage } from "./web/tools/well-known";
+import { agentHealthPage } from "./web/tools/agent-health";
 import { simulateX402 } from "./simulate-core";
 import { getMerchantTrust } from "./merchant-core";
 import { getAgentRegistry } from "./registry-core";
@@ -56,6 +57,7 @@ import { runAgentIntel, type AgentIntelInput } from "./agent-intel-core";
 import { routeTask, type RouteInput } from "./route-core";
 import { probeEndpoint, type ProbeInput } from "./probe-core";
 import { readWellKnown, type WellKnownInput } from "./wellknown-core";
+import { runAgentHealth, type HealthInput } from "./health-core";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -119,6 +121,7 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "agent-route": agentRoutePage,
   "402-probe": x402ProbePage,
   "well-known": wellKnownPage,
+  "agent-health": agentHealthPage,
   "address-toolkit": addressToolkitPage,
 };
 
@@ -491,6 +494,24 @@ app.post("/api/well-known/lookup", async (c) => {
   } catch (e) {
     console.error("well-known lookup error:", e);
     return c.json({ ok: false, error: "wellknown_failed" }, 502);
+  }
+});
+
+// Free lookup for the Agent Health page. Thin orchestrator over probe + well-known + latency.
+app.post("/api/agent-health/lookup", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const input: HealthInput = {
+    url: body.url === undefined ? "" : String(body.url).slice(0, 2000),
+    method: body.method === undefined ? undefined : String(body.method),
+    body: body.body,
+    timeout_ms: body.timeout_ms === undefined ? undefined : Number(body.timeout_ms),
+  };
+  try {
+    const data = await runAgentHealth(input);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("agent-health lookup error:", e);
+    return c.json({ ok: false, error: "health_failed" }, 502);
   }
 });
 
@@ -1442,6 +1463,25 @@ app.post("/api/well-known", async (c) => {
   } catch (e) {
     console.error("well-known error:", e);
     return c.json({ ok: false, error: "wellknown_failed" }, 502);
+  }
+});
+
+// Paid tier: Agent Health — same payload as the free lookup, x402-protected.
+// POST { "url", "method"?, "body"?, "timeout_ms"? }
+app.post("/api/agent-health", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const input: HealthInput = {
+    url: body.url === undefined ? "" : String(body.url).slice(0, 2000),
+    method: body.method === undefined ? undefined : String(body.method),
+    body: body.body,
+    timeout_ms: body.timeout_ms === undefined ? undefined : Number(body.timeout_ms),
+  };
+  try {
+    const data = await runAgentHealth(input);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("agent-health error:", e);
+    return c.json({ ok: false, error: "health_failed" }, 502);
   }
 });
 

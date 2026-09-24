@@ -290,6 +290,15 @@ export const TOOLS: Record<string, ToolPricing> = {
     category: "trust",
   },
 
+  "agent-health": {
+    path: "/api/agent-health",
+    priceUsd: 0.003,
+    description: "Agent Health: cosmic diagnostics — payment readiness + discovery + latency in one scan.",
+    icon: "✹",
+    freeForHumans: true,
+    category: "trust",
+  },
+
   "address-toolkit": {
     path: "/api/address-toolkit",
     priceUsd: 0.001,
