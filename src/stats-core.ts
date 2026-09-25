@@ -16,6 +16,7 @@
 
 import { TOOLS } from "./config";
 import { getReceipts } from "./trust-core";
+import { TELEMETRY_HEADER } from "./telemetry-core";
 
 /** Known test wallet used by the team (awal CLI). Reported separately. */
 export const TEST_WALLET = "0x998da3d1f0b6f510cd629bf26e7aeca08f4ca103";
@@ -136,14 +137,30 @@ const PROBE_PATHS = [
  * Self-probe the hub's public surface.
  * fetch is I/O, not CPU — safe on Workers even with several parallel calls.
  */
-export async function selfProbe(origin: string): Promise<SelfStatus> {
+export interface Prober {
+  request(
+    path: string,
+    init?: RequestInit,
+    env?: unknown,
+  ): Response | Promise<Response>;
+}
+
+export async function selfProbe(
+  app: Prober,
+  env: unknown,
+  origin: string,
+): Promise<SelfStatus> {
   const started = Date.now();
   const results = await Promise.all(
     PROBE_PATHS.map(async (path): Promise<ProbeResult> => {
       const url = origin + path;
       const t0 = Date.now();
       try {
-        const r = await fetch(url, { method: "GET" });
+        const r = await app.request(
+          path,
+          { method: "GET", headers: { [TELEMETRY_HEADER]: "1" } },
+          env,
+        );
         // Drain body to avoid dangling streams.
         await r.text().catch(() => "");
         return { url, path, status: r.status, ok: r.status === 200, ms: Date.now() - t0 };

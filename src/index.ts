@@ -68,6 +68,7 @@ import { getTokenQuote, type QuoteInput } from "./quote-core";
 import { getTokenInspector, type TokenInspectorInput } from "./token-inspector-core";
 import { x402v2 } from "./x402";
 import { getHubStats, selfProbe } from "./stats-core";
+import { recordCall, snapshot as telemetrySnapshot, TELEMETRY_HEADER } from "./telemetry-core";
 import { statusPage } from "./web/status";
 
 export interface Env {
@@ -113,7 +114,7 @@ app.get("/api/status", async (c) => {
   const cfg = getConfig(c.env);
   const origin = new URL(c.req.url).origin || cfg.siteUrl;
   try {
-    const s = await selfProbe(origin);
+    const s = await selfProbe(app, c.env, cfg.siteUrl);
     return c.json(s);
   } catch (e) {
     return c.json({ error: "status_probe_failed", message: String(e) }, 500);
@@ -128,7 +129,7 @@ app.get("/api/stats", async (c) => {
   }
   try {
     const stats = await getHubStats(cfg.alchemyBaseUrl, cfg.payTo, cfg.network);
-    return c.json(stats);
+    return c.json({ ...stats, telemetry: telemetrySnapshot() });
   } catch (e) {
     return c.json({ error: "stats_failed", message: String(e) }, 500);
   }
@@ -274,6 +275,14 @@ app.get("/llms.txt", (c) => {
   lines.push(`Discovery: ${cfg.siteUrl}/api/list`);
   lines.push(`Stats (on-chain): ${cfg.siteUrl}/api/stats`);
   lines.push(`Status (live): ${cfg.siteUrl}/api/status`);
+  lines.push("");
+  lines.push("## Real paid call (via Coinbase Wallet CLI, awal)");
+  lines.push("");
+  lines.push("  npx awal x402 pay " + cfg.siteUrl + "/api/web-markdown -X POST -d @body.json");
+  lines.push("");
+  lines.push("awal signs the exact USDC transfer, base64-encodes the payload,");
+  lines.push("and sends it as the X-PAYMENT header. The hub verifies via the");
+  lines.push("facilitator and returns the tool result on the first retry.");
   lines.push("");
   lines.push("## Paid example (end-to-end)");
   lines.push("");
@@ -627,7 +636,16 @@ app.use("/api/*", async (c, next) => {
       503
     );
   }
-  return x402v2(cfg)(c, next);
+  const res = await x402v2(cfg)(c, next);
+  // Telemetry: count only external /api/<tool> calls.
+  try {
+    const path = new URL(c.req.url).pathname;
+    if (/^\/api\/(list|stats|status)$/.test(path)) return res;
+    if (c.req.header(TELEMETRY_HEADER) === "1") return res;
+    const status = (res && (res as Response).status) || c.res?.status || 0;
+    if (status) recordCall(path, status);
+  } catch { /* never break the request path */ }
+  return res;
 });
 
 /* ------------------------------------------------------------------ */
