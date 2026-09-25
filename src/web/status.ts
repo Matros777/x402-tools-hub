@@ -113,7 +113,7 @@ export function statusPage(cfg: AppConfig): string {
     if (body) {
       body.innerHTML = '<code>' + s.probes.map(p =>
         (p.ok ? '✅' : '❌') + ' ' + p.status + '  ' + p.path + '  (' + p.ms + ' ms)'
-      ).join('\n') + '</code>';
+      ).join('\\n') + '</code>';
     }
   } catch (e) {
     set('s-health', 'error: ' + e);
