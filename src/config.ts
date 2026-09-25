@@ -334,6 +334,15 @@ export const TOOLS: Record<string, ToolPricing> = {
     category: "trust",
   },
 
+  "token-inspector": {
+    path: "/api/token-inspector",
+    priceUsd: 0.001,
+    description: "Fact-only token identity for Base: contract vs EOA, ERC-20 vs ERC-721, name, symbol, decimals, total supply and owner.",
+    icon: "🔎",
+    freeForHumans: true,
+    category: "crypto",
+  },
+
   "token-quote": {
     path: "/api/token-quote",
     priceUsd: 0.001,

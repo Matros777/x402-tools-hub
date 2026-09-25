@@ -50,6 +50,7 @@ import { agentHealthPage } from "./web/tools/agent-health";
 import { paymentDecoderPage } from "./web/tools/payment-decoder";
 import { receiptNotaryPage } from "./web/tools/receipt-notary";
 import { tokenQuotePage } from "./web/tools/token-quote";
+import { tokenInspectorPage } from "./web/tools/token-inspector";
 import { simulateX402 } from "./simulate-core";
 import { getMerchantTrust } from "./merchant-core";
 import { getAgentRegistry } from "./registry-core";
@@ -64,6 +65,7 @@ import { runAgentHealth, type HealthInput } from "./health-core";
 import { decodePayment, type DecodeInput } from "./decoder-core";
 import { notarize, type NotaryInput, MAX_BODY } from "./notary-core";
 import { getTokenQuote, type QuoteInput } from "./quote-core";
+import { getTokenInspector, type TokenInspectorInput } from "./token-inspector-core";
 import { x402v2 } from "./x402";
 
 export interface Env {
@@ -131,6 +133,7 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "payment-decoder": paymentDecoderPage,
   "receipt-notary": receiptNotaryPage,
   "token-quote": tokenQuotePage,
+  "token-inspector": tokenInspectorPage,
   "address-toolkit": addressToolkitPage,
 };
 
@@ -1580,6 +1583,41 @@ app.post("/api/token-quote", async (c) => {
   } catch (e) {
     console.error("token-quote error:", e);
     return c.json({ ok: false, error: "quote_failed" }, 502);
+  }
+});
+
+// Free lookup for the Token Inspector page. Base-only, fact-only.
+app.post("/api/token-inspector/lookup", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const input: TokenInspectorInput = {
+    address: body.address === undefined ? "" : String(body.address).slice(0, 42),
+    chain: body.chain === undefined ? undefined : String(body.chain).slice(0, 16),
+  };
+  const cfg = getConfig(c.env);
+  try {
+    const data = await getTokenInspector(input, cfg.alchemyBaseUrl);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("token-inspector lookup error:", e);
+    return c.json({ ok: false, error: "inspect_failed" }, 502);
+  }
+});
+
+// Paid tier: Token Inspector — same payload as the free lookup, x402-protected.
+// POST { "address": "0x…", "chain"?: "base" }
+app.post("/api/token-inspector", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const input: TokenInspectorInput = {
+    address: body.address === undefined ? "" : String(body.address).slice(0, 42),
+    chain: body.chain === undefined ? undefined : String(body.chain).slice(0, 16),
+  };
+  const cfg = getConfig(c.env);
+  try {
+    const data = await getTokenInspector(input, cfg.alchemyBaseUrl);
+    return c.json({ ok: true, data });
+  } catch (e) {
+    console.error("token-inspector error:", e);
+    return c.json({ ok: false, error: "inspect_failed" }, 502);
   }
 });
 
