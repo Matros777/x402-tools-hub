@@ -4,6 +4,11 @@
  *
  * SEO: JSON-LD (Organization + WebSite + ItemList), meta robots, preconnect,
  * human-readable card titles.
+ *
+ * Trust layer (v1): live trust-bar under the hero + "Proof of work" section
+ * under tools. Data is pulled client-side from /api/stats and /api/status
+ * (both free, no payment). Honest labels: external vs test wallet are split,
+ * telemetry is marked as "since worker start".
  */
 
 import { TOOLS, type AppConfig } from "../config";
@@ -144,6 +149,7 @@ export function landingPage(cfg: AppConfig): string {
     </a>
     <nav class="nav-links">
       <a href="#tools">Tools</a>
+      <a href="#proof">Proof</a>
       <a href="/llms.txt">llms.txt</a>
       <a href="/api/list">API</a>
     </nav>
@@ -161,6 +167,12 @@ export function landingPage(cfg: AppConfig): string {
     <div class="hero-cta">
       <a class="btn btn-primary" href="#tools">Browse tools</a>
       <a class="btn btn-ghost" href="/api/list">Discovery JSON</a>
+    </div>
+    <div class="trust-bar" id="trust-bar" aria-live="polite">
+      <a class="tag tag-free" href="/status" title="Live self-probe of the hub's public endpoints">Health <b id="tb-health">…</b>/<span id="tb-health-total">6</span></a>
+      <span class="tag tag-free">Tools <b>${tools.length}</b></span>
+      <a class="tag tag-paid" href="/api/stats" title="On-chain USDC (Base) payments into the hub">Payments <b id="tb-payments">…</b></a>
+      <a class="tag tag-paid" href="/api/stats" title="Unique external payer wallets (test wallet excluded)">External payers <b id="tb-ext-payers">…</b></a>
     </div>
     <div class="terminal">
       <div class="terminal-bar">
@@ -184,6 +196,53 @@ export function landingPage(cfg: AppConfig): string {
     <div class="grid">
       ${toolCards}
     </div>
+  </section>
+
+  <section class="live" id="proof">
+    <div class="section-head">
+      <h2>Proof of work</h2>
+      <p>Live numbers, no marketing. Source of truth: on-chain USDC (Base) receipts.</p>
+    </div>
+
+    <div class="grid" id="live-grid">
+      <div class="card live-card">
+        <h3 class="card-title">Endpoints</h3>
+        <p class="card-desc"><b id="lv-health">…</b> / 6 healthy</p>
+        <p class="live-note" id="lv-health-note">live self-probe</p>
+      </div>
+      <div class="card live-card">
+        <h3 class="card-title">Payments received</h3>
+        <p class="card-desc"><b id="lv-payments">…</b> tx · <b id="lv-volume">…</b> USDC</p>
+        <p class="live-note">all inbound, on-chain</p>
+      </div>
+      <div class="card live-card">
+        <h3 class="card-title">External payers</h3>
+        <p class="card-desc"><b id="lv-ext-payers">…</b> wallets · <b id="lv-ext-payments">…</b> tx</p>
+        <p class="live-note" id="lv-ext-note">test wallet excluded</p>
+      </div>
+      <div class="card live-card">
+        <h3 class="card-title">API calls (this worker)</h3>
+        <p class="card-desc"><b id="lv-calls">…</b> total</p>
+        <p class="live-note" id="lv-calls-note">in-memory, resets on recycle</p>
+      </div>
+    </div>
+
+    <div class="section-head" style="margin-top:2.5rem">
+      <h2>Top tools by calls</h2>
+      <p>Real request counts since the current worker isolate started.</p>
+    </div>
+    <div class="terminal">
+      <div class="terminal-bar">
+        <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+        <span class="terminal-title">GET /api/stats</span>
+      </div>
+      <pre class="terminal-body" id="lv-tools"><code>loading…</code></pre>
+    </div>
+
+    <p class="live-src">
+      Machine-readable: <a href="/api/stats">/api/stats</a> · <a href="/api/status">/api/status</a> ·
+      <a href="/status">/status</a>. External payments exclude the known test wallet — shown separately, never hidden.
+    </p>
   </section>
 
   <section class="how">
@@ -215,6 +274,8 @@ export function landingPage(cfg: AppConfig): string {
   <div class="footer-inner">
     <span>${esc(cfg.siteName)}</span>
     <span class="footer-sep">·</span>
+    <a href="/status">status</a>
+    <span class="footer-sep">·</span>
     <a href="/llms.txt">llms.txt</a>
     <span class="footer-sep">·</span>
     <a href="/openapi.json">openapi.json</a>
@@ -223,6 +284,86 @@ export function landingPage(cfg: AppConfig): string {
   </div>
   <div class="footer-copy">payments on ${esc(cfg.network)} · x402 protocol</div>
 </footer>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var set = function (id, v) { var el = $(id); if (el) el.textContent = v; };
+
+  function loadStats() {
+    fetch('/api/stats', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (s) {
+        if (s.error) throw new Error(s.error);
+        set('tb-payments', String(s.payments_received));
+        set('tb-ext-payers', String(s.external_payers));
+        set('lv-payments', String(s.payments_received));
+        set('lv-volume', '$' + s.volume_usd);
+        set('lv-ext-payers', String(s.external_payers));
+        set('lv-ext-payments', String(s.external_payments) + ' tx');
+        if (typeof s.external_volume_usd === 'number') {
+          var ext = $('lv-ext-note');
+          if (ext) ext.textContent = 'test wallet excluded · $' + s.external_volume_usd + ' external volume';
+        }
+        var t = s.telemetry || {};
+        set('lv-calls', String(t.total_calls == null ? '0' : t.total_calls));
+        if (t.since) {
+          var n = $('lv-calls-note');
+          if (n) n.textContent = 'since ' + t.since + ' (resets when the isolate is recycled)';
+        }
+        // Top tools table (top-5 by calls)
+        var pre = $('lv-tools');
+        if (pre) {
+          var arr = (t.per_tool || []).slice(0, 5);
+          if (!arr.length) {
+            pre.innerHTML = '<code>no calls yet since worker start</code>';
+          } else {
+            var lines = arr.map(function (x) {
+              var name = (x.slug || '').padEnd(22, ' ');
+              var calls = String(x.calls).padStart(5, ' ');
+              var paid = ' paid:' + x.paid;
+              var unpaid = ' 402:' + x.unpaid;
+              return name + calls + paid + unpaid;
+            });
+            pre.innerHTML = '<code>' + lines.join('\n').replace(/</g, '&lt;') + '</code>';
+          }
+        }
+      })
+      .catch(function () {
+        set('tb-payments', '—');
+        set('tb-ext-payers', '—');
+        set('lv-payments', '—');
+        set('lv-volume', '—');
+        set('lv-ext-payers', '—');
+        set('lv-ext-payments', '—');
+        set('lv-calls', '—');
+        var pre = $('lv-tools');
+        if (pre) pre.innerHTML = '<code>stats unavailable (retrying…)</code>';
+      });
+  }
+
+  function loadStatus() {
+    fetch('/api/status', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (s) {
+        if (s.error) throw new Error(s.error);
+        set('tb-health', String(s.ok_count));
+        set('tb-health-total', String(s.total));
+        set('lv-health', String(s.ok_count));
+        var n = $('lv-health-note');
+        if (n) n.textContent = 'live self-probe · avg ' + s.avg_ms + ' ms';
+      })
+      .catch(function () {
+        set('tb-health', '—');
+        set('lv-health', '—');
+      });
+  }
+
+  function tick() { loadStats(); loadStatus(); }
+  tick();
+  setInterval(tick, 30000);
+})();
+</script>
 
 </body>
 </html>`;

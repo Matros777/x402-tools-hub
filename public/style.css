@@ -1397,3 +1397,63 @@ section { padding: 72px 0; }
   letter-spacing: 0.18em;
   color: rgba(120,200,255,.7);
 }
+
+/* ---------- trust layer (landing) -------------------------------- */
+
+.trust-bar {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 0 0 44px;
+}
+
+.trust-bar .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  padding: 5px 13px;
+  text-decoration: none;
+  transition: border-color .2s ease, transform .16s ease;
+}
+
+.trust-bar .tag:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.trust-bar .tag b {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.live-card { cursor: default; }
+.live-card:hover { transform: none; }
+
+.live-card .card-desc b {
+  color: var(--accent-hi);
+  font-family: var(--font-mono);
+}
+
+.live-note {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+.live-src {
+  margin: 28px 0 0;
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: center;
+}
+
+.live-src a { color: var(--accent-hi); text-decoration: none; }
+.live-src a:hover { text-decoration: underline; }
+
+@media (max-width: 600px) {
+  .trust-bar { margin-bottom: 32px; }
+  .trust-bar .tag { font-size: 11px; padding: 4px 10px; }
+}
