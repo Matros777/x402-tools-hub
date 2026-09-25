@@ -67,6 +67,8 @@ import { notarize, type NotaryInput, MAX_BODY } from "./notary-core";
 import { getTokenQuote, type QuoteInput } from "./quote-core";
 import { getTokenInspector, type TokenInspectorInput } from "./token-inspector-core";
 import { x402v2 } from "./x402";
+import { getHubStats, selfProbe } from "./stats-core";
+import { statusPage } from "./web/status";
 
 export interface Env {
   X402_NETWORK?: string;
@@ -94,6 +96,43 @@ app.get("/", (c) => {
 app.get("/health", (c) =>
   c.json({ status: "ok", name: getConfig(c.env).siteName, ts: Date.now() })
 );
+
+/* ------------------------------------------------------------------ */
+/*  Status page + telemetry (free, public, no x402)                    */
+/* ------------------------------------------------------------------ */
+
+// Human-readable health dashboard. Client-side it pulls /api/status and
+// /api/stats. Registered before the /api/* payment middleware so it stays open.
+app.get("/status", (c) => {
+  const cfg = getConfig(c.env);
+  return c.html(statusPage(cfg));
+});
+
+// Self-probe: liveness + latency of the hub's own public discovery surface.
+app.get("/api/status", async (c) => {
+  const cfg = getConfig(c.env);
+  const origin = new URL(c.req.url).origin || cfg.siteUrl;
+  try {
+    const s = await selfProbe(origin);
+    return c.json(s);
+  } catch (e) {
+    return c.json({ error: "status_probe_failed", message: String(e) }, 500);
+  }
+});
+
+// On-chain telemetry: payments into payTo, split into external vs test wallet.
+app.get("/api/stats", async (c) => {
+  const cfg = getConfig(c.env);
+  if (!cfg.alchemyBaseUrl || !cfg.payTo) {
+    return c.json({ error: "stats_not_configured", hint: "ALCHEMY_BASE_URL or X402_PAY_TO missing" }, 503);
+  }
+  try {
+    const stats = await getHubStats(cfg.alchemyBaseUrl, cfg.payTo, cfg.network);
+    return c.json(stats);
+  } catch (e) {
+    return c.json({ error: "stats_failed", message: String(e) }, 500);
+  }
+});
 
 /* ------------------------------------------------------------------ */
 /*  Tool pages (HTML, free for humans)                                 */
@@ -233,6 +272,19 @@ app.get("/llms.txt", (c) => {
   }
   lines.push("");
   lines.push(`Discovery: ${cfg.siteUrl}/api/list`);
+  lines.push(`Stats (on-chain): ${cfg.siteUrl}/api/stats`);
+  lines.push(`Status (live): ${cfg.siteUrl}/api/status`);
+  lines.push("");
+  lines.push("## Paid example (end-to-end)");
+  lines.push("");
+  lines.push("1. POST " + cfg.siteUrl + "/api/web-markdown  ->  402 Payment Required");
+  lines.push("2. The 402 body + PAYMENT-REQUIRED header carry accepts[]: scheme=exact,");
+  lines.push("   network=eip155:8453 (Base), asset=USDC, amount in atomic units, payTo.");
+  lines.push("3. Sign the exact-transfer, base64 the payload, retry with header X-PAYMENT: <b64>.");
+  lines.push("4. The hub verifies + settles via the facilitator, then returns the tool result.");
+  lines.push("");
+  lines.push("The receiving address is discoverable ONLY from the 402 response,");
+  lines.push("never from this file — by design.");
   return c.text(lines.join("\n"), 200, { "content-type": "text/plain; charset=utf-8" });
 });
 
