@@ -250,6 +250,11 @@ app.get("/.well-known/agent.json", (c) => {
   });
 });
 
+// Canonical agent manifest lives at /.well-known/agent.json. This 301 alias
+// serves agents that probe the conventional /agent.json path directly, so
+// there is exactly one discovery document and the hub answers on both.
+app.get("/agent.json", (c) => c.redirect("/.well-known/agent.json", 301));
+
 /* ------------------------------------------------------------------ */
 /*  Free wallet lookup (browser page, no x402)                         */
 /* ------------------------------------------------------------------ */
