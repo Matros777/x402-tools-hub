@@ -207,7 +207,7 @@ export function landingPage(cfg: AppConfig): string {
     <div class="grid" id="live-grid">
       <div class="card live-card">
         <h3 class="card-title">Endpoints</h3>
-        <p class="card-desc"><b id="lv-health">…</b> / 6 healthy</p>
+        <p class="card-desc"><b id="lv-health">…</b> / <span id="tb-health-total2">6</span> healthy</p>
         <p class="live-note" id="lv-health-note">live self-probe</p>
       </div>
       <div class="card live-card">
@@ -219,11 +219,6 @@ export function landingPage(cfg: AppConfig): string {
         <h3 class="card-title">External payers</h3>
         <p class="card-desc"><b id="lv-ext-payers">…</b> wallets · <b id="lv-ext-payments">…</b> tx</p>
         <p class="live-note" id="lv-ext-note">test wallet excluded</p>
-      </div>
-      <div class="card live-card">
-        <h3 class="card-title">API calls (this worker)</h3>
-        <p class="card-desc"><b id="lv-calls">…</b> total</p>
-        <p class="live-note" id="lv-calls-note">in-memory, resets on recycle</p>
       </div>
     </div>
 
@@ -306,11 +301,6 @@ export function landingPage(cfg: AppConfig): string {
           if (ext) ext.textContent = 'test wallet excluded · $' + s.external_volume_usd + ' external volume';
         }
         var t = s.telemetry || {};
-        set('lv-calls', String(t.total_calls == null ? '0' : t.total_calls));
-        if (t.since) {
-          var n = $('lv-calls-note');
-          if (n) n.textContent = 'since ' + t.since + ' (resets when the isolate is recycled)';
-        }
         // Top tools table (top-5 by calls)
         var pre = $('lv-tools');
         if (pre) {
@@ -325,7 +315,7 @@ export function landingPage(cfg: AppConfig): string {
               var unpaid = ' 402:' + x.unpaid;
               return name + calls + paid + unpaid;
             });
-            pre.innerHTML = '<code>' + lines.join('\n').replace(/</g, '&lt;') + '</code>';
+            pre.innerHTML = '<code>' + lines.join('\\n').replace(/</g, '&lt;') + '</code>';
           }
         }
       })
@@ -336,7 +326,6 @@ export function landingPage(cfg: AppConfig): string {
         set('lv-volume', '—');
         set('lv-ext-payers', '—');
         set('lv-ext-payments', '—');
-        set('lv-calls', '—');
         var pre = $('lv-tools');
         if (pre) pre.innerHTML = '<code>stats unavailable (retrying…)</code>';
       });
@@ -349,6 +338,7 @@ export function landingPage(cfg: AppConfig): string {
         if (s.error) throw new Error(s.error);
         set('tb-health', String(s.ok_count));
         set('tb-health-total', String(s.total));
+        set('tb-health-total2', String(s.total));
         set('lv-health', String(s.ok_count));
         var n = $('lv-health-note');
         if (n) n.textContent = 'live self-probe · avg ' + s.avg_ms + ' ms';
