@@ -47,6 +47,7 @@ export function statusPage(cfg: AppConfig): string {
     </a>
     <nav class="nav-links">
       <a href="/">Tools</a>
+      <a href="/docs">Docs</a>
       <a href="/llms.txt">llms.txt</a>
       <a href="/api/list">API</a>
     </nav>
@@ -93,6 +94,8 @@ export function statusPage(cfg: AppConfig): string {
 <footer class="footer">
   <div class="footer-inner">
     <span>${esc(cfg.siteName)}</span>
+    <span class="footer-sep">·</span>
+    <a href="/docs">docs</a>
     <span class="footer-sep">·</span>
     <a href="/">home</a>
     <span class="footer-sep">·</span>

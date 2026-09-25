@@ -28,6 +28,7 @@ export const CATEGORY_ORDER = [
   "ai",
   "security",
   "seo",
+  "news",
 ] as const;
 
 export type ToolCategory = (typeof CATEGORY_ORDER)[number];
@@ -49,6 +50,7 @@ export const CATEGORY_LABELS: Record<ToolCategory, string> = {
   ai: "AI / LLM",
   security: "Security",
   seo: "SEO / Meta",
+  news: "News / Social",
 };
 
 export interface ToolPricing {
@@ -350,6 +352,32 @@ export const TOOLS: Record<string, ToolPricing> = {
     icon: "¥",
     freeForHumans: true,
     category: "crypto",
+  },
+
+  /* ---------------- News / Social ---------------- */
+  "hn-news": {
+    path: "/api/hn-news",
+    priceUsd: 0.001,
+    description: "Fresh Hacker News stories by keyword: AI agents, x402, crypto infra, incidents. Public Algolia API, no key.",
+    icon: "Y",
+    freeForHumans: true,
+    category: "news",
+  },
+  "x-search": {
+    path: "/api/x-search",
+    priceUsd: 0.001,
+    description: "Recent X/Twitter mentions and news by keyword — agent launches, token drama, AI agent incidents.",
+    icon: "✕",
+    freeForHumans: true,
+    category: "news",
+  },
+  "ai-incidents": {
+    path: "/api/ai-incidents",
+    priceUsd: 0.001,
+    description: "Rotating feed of AI agent incidents and risks: failures, bugs, hacks, hallucinations, leaks. HN + Google News.",
+    icon: "⚠",
+    freeForHumans: true,
+    category: "news",
   },
 };
 

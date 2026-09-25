@@ -265,7 +265,10 @@ export function renderToolPage(cfg: AppConfig, opts: ToolPageOptions): string {
     </a>
     <nav class="nav-links">
       <a href="/#tools">Tools</a>
-      <a href="/llms.txt">llms.txt</a>
+      <a href="/docs">Docs</a>
+      <a href="/docs">docs</a>
+    <span class="footer-sep">·</span>
+    <a href="/llms.txt">llms.txt</a>
       <a href="/api/list">API</a>
     </nav>
   </div>

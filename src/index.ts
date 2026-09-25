@@ -70,6 +70,9 @@ import { x402v2 } from "./x402";
 import { getHubStats, selfProbe } from "./stats-core";
 import { recordCall, snapshot as telemetrySnapshot, TELEMETRY_HEADER } from "./telemetry-core";
 import { statusPage } from "./web/status";
+import { docsPage } from "./web/docs";
+import { hnNewsPage, xSearchPage, aiIncidentsPage } from "./web/tools/agent-news";
+import { fetchHnNews, fetchGoogleNews, fetchAiIncidents } from "./agent-news-core";
 
 export interface Env {
   X402_NETWORK?: string;
@@ -107,6 +110,12 @@ app.get("/health", (c) =>
 app.get("/status", (c) => {
   const cfg = getConfig(c.env);
   return c.html(statusPage(cfg));
+});
+
+// Developer documentation (free for everyone, no x402).
+app.get("/docs", (c) => {
+  const cfg = getConfig(c.env);
+  return c.html(docsPage(cfg));
 });
 
 // Self-probe: liveness + latency of the hub's own public discovery surface.
@@ -175,6 +184,9 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "token-quote": tokenQuotePage,
   "token-inspector": tokenInspectorPage,
   "address-toolkit": addressToolkitPage,
+  "hn-news": hnNewsPage,
+  "x-search": xSearchPage,
+  "ai-incidents": aiIncidentsPage,
 };
 
 app.get("/tools/:name", (c) => {
@@ -1693,6 +1705,92 @@ app.post("/api/token-inspector", async (c) => {
   } catch (e) {
     console.error("token-inspector error:", e);
     return c.json({ ok: false, error: "inspect_failed" }, 502);
+  }
+});
+
+/* ------------------------------------------------------------------ */
+/*  Agent news tools (hn-news / x-search / ai-incidents)               */
+/* ------------------------------------------------------------------ */
+
+// Free lookup: Hacker News search by keyword.
+app.post("/api/hn-news/lookup", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const query = body.query === undefined ? "" : String(body.query).slice(0, 120);
+  const limit = Number(body.limit) || 8;
+  try {
+    const items = query ? await fetchHnNews(query, { limit }) : [];
+    return c.json({ ok: true, query, items });
+  } catch (e) {
+    console.error("hn-news lookup error:", e);
+    return c.json({ ok: false, error: "hn_search_failed" }, 502);
+  }
+});
+
+// Paid tier: Hacker News search — same payload as the free lookup.
+app.post("/api/hn-news", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const query = body.query === undefined ? "" : String(body.query).slice(0, 120);
+  const limit = Number(body.limit) || 8;
+  try {
+    const items = query ? await fetchHnNews(query, { limit }) : [];
+    return c.json({ ok: true, query, items });
+  } catch (e) {
+    console.error("hn-news error:", e);
+    return c.json({ ok: false, error: "hn_search_failed" }, 502);
+  }
+});
+
+// Free lookup: X/Twitter mentions via Google News RSS.
+app.post("/api/x-search/lookup", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const query = body.query === undefined ? "" : String(body.query).slice(0, 120);
+  const limit = Number(body.limit) || 8;
+  try {
+    const items = query ? await fetchGoogleNews(`${query} (twitter OR x)`, { limit }) : [];
+    return c.json({ ok: true, query, items });
+  } catch (e) {
+    console.error("x-search lookup error:", e);
+    return c.json({ ok: false, error: "x_search_failed" }, 502);
+  }
+});
+
+// Paid tier: X/Twitter search — same payload as the free lookup.
+app.post("/api/x-search", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const query = body.query === undefined ? "" : String(body.query).slice(0, 120);
+  const limit = Number(body.limit) || 8;
+  try {
+    const items = query ? await fetchGoogleNews(`${query} (twitter OR x)`, { limit }) : [];
+    return c.json({ ok: true, query, items });
+  } catch (e) {
+    console.error("x-search error:", e);
+    return c.json({ ok: false, error: "x_search_failed" }, 502);
+  }
+});
+
+// Free lookup: AI agent incident feed (no query needed).
+app.post("/api/ai-incidents/lookup", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const limit = Number(body.limit) || 10;
+  try {
+    const items = await fetchAiIncidents({ limit });
+    return c.json({ ok: true, items });
+  } catch (e) {
+    console.error("ai-incidents lookup error:", e);
+    return c.json({ ok: false, error: "incidents_failed" }, 502);
+  }
+});
+
+// Paid tier: AI agent incidents — same payload as the free lookup.
+app.post("/api/ai-incidents", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const limit = Number(body.limit) || 10;
+  try {
+    const items = await fetchAiIncidents({ limit });
+    return c.json({ ok: true, items });
+  } catch (e) {
+    console.error("ai-incidents error:", e);
+    return c.json({ ok: false, error: "incidents_failed" }, 502);
   }
 });
 
