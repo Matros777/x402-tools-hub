@@ -58,7 +58,8 @@ export function recordCall(path: string, status: number): void {
   if (!state.first_call_at) state.first_call_at = now;
   state.last_call_at = now;
 
-  const bucket = status >= 500 ? "5xx" : status >= 400 ? "4xx" : String(status);
+  const s = typeof status === "number" && Number.isFinite(status) ? Math.trunc(status) : 0;
+  const bucket = s >= 500 ? "5xx" : s >= 400 ? "4xx" : String(s);
   state.per_status[bucket] = (state.per_status[bucket] ?? 0) + 1;
 
   const slug = slugFromPath(path);

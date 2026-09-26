@@ -654,7 +654,8 @@ app.use("/api/*", async (c, next) => {
     const path = new URL(c.req.url).pathname;
     if (/^\/api\/(list|stats|status)$/.test(path)) return res;
     if (c.req.header(TELEMETRY_HEADER) === "1") return res;
-    const status = (res && (res as Response).status) || c.res?.status || 0;
+    const rawStatus = (res && (res as Response).status) ?? c.res?.status ?? 0;
+    const status = typeof rawStatus === "number" && Number.isFinite(rawStatus) ? Math.trunc(rawStatus) : 0;
     if (status) recordCall(path, status);
   } catch { /* never break the request path */ }
   return res;
