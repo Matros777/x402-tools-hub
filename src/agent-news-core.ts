@@ -112,6 +112,37 @@ export async function fetchGoogleNews(
   return items;
 }
 
+/** X/Twitter search: Google News indexes public X posts (site:x.com / site:twitter.com).
+ *  Nitter and RSSHub public instances are unreliable, so site: filters on Google
+ *  News are the only key-free, Cloudflare-safe source that returns actual X posts.
+ */
+export async function fetchXSearch(
+  query: string,
+  opts: { limit?: number } = {}
+): Promise<NewsItem[]> {
+  const limit = clampInt(opts.limit, 8, 20);
+  const q = query.trim();
+  if (!q) return [];
+
+  // 1) posts from X itself
+  const siteQuery = `${q} (site:x.com OR site:twitter.com)`;
+  let items = await fetchGoogleNews(siteQuery, { limit }).catch(() => []);
+  if (items.length >= limit) return items.slice(0, limit);
+
+  // 2) fallback: plain news mentions
+  const plain = await fetchGoogleNews(q, { limit }).catch(() => []);
+  const seen = new Set<string>();
+  const out: NewsItem[] = [];
+  for (const it of [...items, ...plain]) {
+    const key = it.title.toLowerCase().slice(0, 80);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(it);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
 /** AI agent incident feed: HN + Google News on risky agent topics. */
 export async function fetchAiIncidents(
   opts: { limit?: number } = {}

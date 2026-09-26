@@ -72,7 +72,7 @@ import { recordCall, snapshot as telemetrySnapshot, TELEMETRY_HEADER } from "./t
 import { statusPage } from "./web/status";
 import { docsPage } from "./web/docs";
 import { hnNewsPage, xSearchPage, aiIncidentsPage } from "./web/tools/agent-news";
-import { fetchHnNews, fetchGoogleNews, fetchAiIncidents } from "./agent-news-core";
+import { fetchHnNews, fetchGoogleNews, fetchAiIncidents, fetchXSearch } from "./agent-news-core";
 
 export interface Env {
   X402_NETWORK?: string;
@@ -1747,7 +1747,7 @@ app.post("/api/x-search/lookup", async (c) => {
   const query = body.query === undefined ? "" : String(body.query).slice(0, 120);
   const limit = Number(body.limit) || 8;
   try {
-    const items = query ? await fetchGoogleNews(`${query} (twitter OR x)`, { limit }) : [];
+    const items = query ? await fetchXSearch(query, { limit }) : [];
     return c.json({ ok: true, query, items });
   } catch (e) {
     console.error("x-search lookup error:", e);
@@ -1761,7 +1761,7 @@ app.post("/api/x-search", async (c) => {
   const query = body.query === undefined ? "" : String(body.query).slice(0, 120);
   const limit = Number(body.limit) || 8;
   try {
-    const items = query ? await fetchGoogleNews(`${query} (twitter OR x)`, { limit }) : [];
+    const items = query ? await fetchXSearch(query, { limit }) : [];
     return c.json({ ok: true, query, items });
   } catch (e) {
     console.error("x-search error:", e);
