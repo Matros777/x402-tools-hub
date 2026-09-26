@@ -68,7 +68,7 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
     "vs": "USD",
     "price": 2800.42,
     "change_24h": 1.24,
-    "source": "coingecko",
+    "source": "binance",
     "as_of": "2026-09-25T21:13:52.160Z"
   }
 }`,

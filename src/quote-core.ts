@@ -3,13 +3,17 @@
  *
  * A single-source, fact-only quote. No buy/sell, no verdict, no history.
  *
- *   input  { "id": "ETH" | "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "vs": "USD" }
+ *   input  { "id": "ETH" | "BTC" | "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "vs": "USD" }
  *   output price + change_24h + source + as_of
  *
  * Rules:
  *   - one source, named explicitly in `source`
  *   - short timeout; if the feed is dead → ok:false, never invent a price
  *   - Base USDC address resolves to $1 with a source note
+ *
+ * Source: Binance public market data (no key, no rate limit).
+ *   primary   https://data-api.binance.vision/api/v3/ticker/24hr
+ *   fallback  https://api.binance.com/api/v3/ticker/24hr
  *
  * Used by:
  *   - GET  /tools/token-quote          (free page)
@@ -19,6 +23,13 @@
 
 const USDC_BASE = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
 const TIMEOUT_MS = 6000;
+
+// Well-known Base addresses -> Binance symbol (fallback for 0x inputs).
+const BASE_ADDR_SYMBOL: Record<string, string> = {
+  "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": "USDC", // USDC on Base
+  "0x4200000000000000000000000000000000000006": "ETH",  // WETH on Base
+  "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22": "BTC",  // cbBTC on Base
+};
 
 export interface QuoteInput {
   id: string;
@@ -35,6 +46,40 @@ export interface QuoteResult {
   as_of: string;
   ok: boolean;
   notes: string[];
+}
+
+function isAddress(id: string): boolean {
+  return /^0x[0-9a-fA-F]{40}$/.test(id);
+}
+
+async function binanceTicker(symbol: string): Promise<{ price: number; change24h: number | null } | null> {
+  const hosts = ["https://data-api.binance.vision", "https://api.binance.com"];
+  for (const host of hosts) {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+      const r = await fetch(`${host}/api/v3/ticker/24hr?symbol=${encodeURIComponent(symbol)}`, {
+        headers: {
+          accept: "application/json",
+          "user-agent": "Mozilla/5.0 (compatible; x402-tools-hub/1.0)",
+        },
+        signal: ctrl.signal,
+      });
+      clearTimeout(timer);
+      if (!r.ok) continue; // try next host
+      const j = (await r.json()) as { lastPrice?: string; priceChangePercent?: string };
+      const price = parseFloat(j.lastPrice ?? "");
+      if (!Number.isFinite(price) || price <= 0) continue;
+      const change = parseFloat(j.priceChangePercent ?? "");
+      return {
+        price,
+        change24h: Number.isFinite(change) ? change : null,
+      };
+    } catch {
+      // try next host
+    }
+  }
+  return null;
 }
 
 export async function getTokenQuote(input: QuoteInput): Promise<QuoteResult> {
@@ -62,43 +107,46 @@ export async function getTokenQuote(input: QuoteInput): Promise<QuoteResult> {
     };
   }
 
-  // Single source: CoinGecko simple price (free, no key). Covers symbols
-  // and most addresses.
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
-    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(id.toLowerCase())}&vs_currencies=usd&include_24hr_change=true`;
-    const r = await fetch(url, {
-      headers: {
-        accept: "application/json",
-        "user-agent": "Mozilla/5.0 (compatible; x402-tools-hub/1.0)",
-      },
-      signal: ctrl.signal,
-    });
-    clearTimeout(timer);
-    if (!r.ok) {
-      notes.push(`CoinGecko HTTP ${r.status}`);
-      return { id, address: null, vs, price: 0, change_24h: null, source: "coingecko", as_of: now, ok: false, notes };
+  // Resolve 0x input -> known Binance symbol, or fail honestly.
+  let symbolId = id;
+  let address: string | null = null;
+  if (isAddress(id)) {
+    const sym = BASE_ADDR_SYMBOL[id.toLowerCase()];
+    if (!sym) {
+      notes.push(`Binance does not quote contract addresses. For "${id}" use a symbol (e.g. ETH, BTC) or a known Base address.`);
+      return { id, address, vs, price: 0, change_24h: null, source: "binance", as_of: now, ok: false, notes };
     }
-    const j = (await r.json()) as Record<string, { usd?: number; usd_24h_change?: number }>;
-    const row = j[id.toLowerCase()];
-    if (!row || typeof row.usd !== "number") {
-      notes.push(`No quote for "${id}" — try a contract address or a CoinGecko id (e.g. bitcoin, ethereum, usd-coin).`);
-      return { id, address: null, vs, price: 0, change_24h: null, source: "coingecko", as_of: now, ok: false, notes };
-    }
-    return {
-      id,
-      address: null,
-      vs,
-      price: row.usd,
-      change_24h: typeof row.usd_24h_change === "number" ? row.usd_24h_change : null,
-      source: "coingecko",
-      as_of: now,
-      ok: true,
-      notes: [],
-    };
-  } catch (e) {
-    notes.push(`Feed failed: ${String((e as Error).message || e)}`);
-    return { id, address: null, vs, price: 0, change_24h: null, source: "coingecko", as_of: now, ok: false, notes };
+    symbolId = sym;
+    address = id;
+    notes.push(`Known Base address resolved to ${sym}; quote via Binance ${sym}USDT.`);
   }
+
+  const pair = `${symbolId.toUpperCase()}USDT`;
+
+  // Single source: Binance public 24h ticker (free, no key, no rate limit).
+  const tick = await binanceTicker(pair);
+  if (!tick) {
+    notes.push(`No Binance quote for "${symbolId}" (pair ${pair}). Try another symbol (e.g. BTC, ETH, SOL, USDC) or a Base address.`);
+    return { id, address, vs, price: 0, change_24h: null, source: "binance", as_of: now, ok: false, notes };
+  }
+
+  const price = tick.price;
+  const change_24h = tick.change24h;
+  if (vs === "USDT") {
+    notes.push("Binance quotes USDT pairs; 1 USDT ≈ $1.");
+  } else if (vs !== "USD") {
+    notes.push(`Only USD/USDT supported; showing USDT value as ${vs}.`);
+  }
+
+  return {
+    id,
+    address,
+    vs,
+    price,
+    change_24h,
+    source: "binance",
+    as_of: now,
+    ok: true,
+    notes,
+  };
 }
