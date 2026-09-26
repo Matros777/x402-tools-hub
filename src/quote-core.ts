@@ -7,13 +7,19 @@
  *   output price + change_24h + source + as_of
  *
  * Rules:
- *   - one source, named explicitly in `source`
- *   - short timeout; if the feed is dead → ok:false, never invent a price
+ *   - one named source per successful answer, `source` is the winner
+ *   - short timeout; if all feeds are dead → ok:false, never invent a price
  *   - Base USDC address resolves to $1 with a source note
  *
- * Source: Binance public market data (no key, no rate limit).
- *   primary   https://data-api.binance.vision/api/v3/ticker/24hr
- *   fallback  https://api.binance.com/api/v3/ticker/24hr
+ * Sources (all public, no key, no rate limit):
+ *   - Binance  https://data-api.binance.vision | https://api.binance.com
+ *   - Bybit    https://api.bybit.com
+ *   - OKX      https://www.okx.com
+ *   - Kraken   https://api.kraken.com
+ *   - Coinbase https://api.exchange.coinbase.com | https://api.coinbase.com
+ *
+ * The first source that returns a valid price wins. Binance data-centre
+ * blocks (403/451 from Cloudflare) are handled by the fallback chain.
  *
  * Used by:
  *   - GET  /tools/token-quote          (free page)
@@ -22,9 +28,9 @@
  */
 
 const USDC_BASE = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
-const TIMEOUT_MS = 6000;
+const TIMEOUT_MS = 5000;
 
-// Well-known Base addresses -> Binance symbol (fallback for 0x inputs).
+// Well-known Base addresses -> symbol (fallback for 0x inputs).
 const BASE_ADDR_SYMBOL: Record<string, string> = {
   "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": "USDC", // USDC on Base
   "0x4200000000000000000000000000000000000006": "ETH",  // WETH on Base
@@ -52,34 +58,119 @@ function isAddress(id: string): boolean {
   return /^0x[0-9a-fA-F]{40}$/.test(id);
 }
 
-async function binanceTicker(symbol: string): Promise<{ price: number; change24h: number | null } | null> {
-  const hosts = ["https://data-api.binance.vision", "https://api.binance.com"];
-  for (const host of hosts) {
-    try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
-      const r = await fetch(`${host}/api/v3/ticker/24hr?symbol=${encodeURIComponent(symbol)}`, {
-        headers: {
-          accept: "application/json",
-          "user-agent": "Mozilla/5.0 (compatible; x402-tools-hub/1.0)",
-        },
-        signal: ctrl.signal,
-      });
-      clearTimeout(timer);
-      if (!r.ok) continue; // try next host
-      const j = (await r.json()) as { lastPrice?: string; priceChangePercent?: string };
-      const price = parseFloat(j.lastPrice ?? "");
-      if (!Number.isFinite(price) || price <= 0) continue;
-      const change = parseFloat(j.priceChangePercent ?? "");
-      return {
-        price,
-        change24h: Number.isFinite(change) ? change : null,
-      };
-    } catch {
-      // try next host
-    }
+// Kraken uses XBT for BTC; the rest use the plain symbol.
+function krakenSym(sym: string): string {
+  return sym.toUpperCase() === "BTC" ? "XBT" : sym.toUpperCase();
+}
+
+interface SourceSpec {
+  name: string;
+  url: string;
+  parse: (j: any) => { price: number; change24h: number | null } | null;
+}
+
+function sourcesFor(sym: string): SourceSpec[] {
+  const S = sym.toUpperCase();
+  return [
+    {
+      name: "binance",
+      url: `https://data-api.binance.vision/api/v3/ticker/24hr?symbol=${S}USDT`,
+      parse: (j) => {
+        const price = parseFloat(j?.lastPrice ?? "");
+        if (!Number.isFinite(price) || price <= 0) return null;
+        const ch = parseFloat(j?.priceChangePercent ?? "");
+        return { price, change24h: Number.isFinite(ch) ? ch : null };
+      },
+    },
+    {
+      name: "binance",
+      url: `https://api.binance.com/api/v3/ticker/24hr?symbol=${S}USDT`,
+      parse: (j) => {
+        const price = parseFloat(j?.lastPrice ?? "");
+        if (!Number.isFinite(price) || price <= 0) return null;
+        const ch = parseFloat(j?.priceChangePercent ?? "");
+        return { price, change24h: Number.isFinite(ch) ? ch : null };
+      },
+    },
+    {
+      name: "bybit",
+      url: `https://api.bybit.com/v5/market/tickers?category=spot&symbol=${S}USDT`,
+      parse: (j) => {
+        const row = j?.result?.list?.[0];
+        const price = parseFloat(row?.lastPrice ?? "");
+        if (!Number.isFinite(price) || price <= 0) return null;
+        const ch = parseFloat(row?.price24hPcnt ?? "");
+        return { price, change24h: Number.isFinite(ch) ? ch * 100 : null };
+      },
+    },
+    {
+      name: "okx",
+      url: `https://www.okx.com/api/v5/market/ticker?instId=${S}-USDT`,
+      parse: (j) => {
+        const row = j?.data?.[0];
+        const price = parseFloat(row?.last ?? "");
+        if (!Number.isFinite(price) || price <= 0) return null;
+        const open = parseFloat(row?.open24h ?? "");
+        let change: number | null = null;
+        if (Number.isFinite(open) && open > 0) change = ((price - open) / open) * 100;
+        return { price, change24h: change };
+      },
+    },
+    {
+      name: "kraken",
+      url: `https://api.kraken.com/0/public/Ticker?pair=${krakenSym(S)}USD`,
+      parse: (j) => {
+        const row = j?.result?.[`${krakenSym(S)}USD`];
+        const price = parseFloat(row?.c?.[0] ?? "");
+        if (!Number.isFinite(price) || price <= 0) return null;
+        const open = parseFloat(row?.o ?? "");
+        let change: number | null = null;
+        if (Number.isFinite(open) && open > 0) change = ((price - open) / open) * 100;
+        return { price, change24h: change };
+      },
+    },
+    {
+      name: "coinbase",
+      url: `https://api.exchange.coinbase.com/products/${S}-USD/stats`,
+      parse: (j) => {
+        const price = parseFloat(j?.last ?? "");
+        if (!Number.isFinite(price) || price <= 0) return null;
+        const open = parseFloat(j?.open ?? "");
+        let change: number | null = null;
+        if (Number.isFinite(open) && open > 0) change = ((price - open) / open) * 100;
+        return { price, change24h: change };
+      },
+    },
+    {
+      name: "coinbase",
+      url: `https://api.coinbase.com/v2/prices/${S}-USD/spot`,
+      parse: (j) => {
+        const price = parseFloat(j?.data?.amount ?? "");
+        if (!Number.isFinite(price) || price <= 0) return null;
+        return { price, change24h: null };
+      },
+    },
+  ];
+}
+
+async function fetchJson(url: string): Promise<any> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  try {
+    const r = await fetch(url, {
+      headers: {
+        accept: "application/json",
+        "user-agent": "Mozilla/5.0 (compatible; x402-tools-hub/1.0)",
+      },
+      signal: ctrl.signal,
+    });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
   }
-  return null;
 }
 
 export async function getTokenQuote(input: QuoteInput): Promise<QuoteResult> {
@@ -107,46 +198,47 @@ export async function getTokenQuote(input: QuoteInput): Promise<QuoteResult> {
     };
   }
 
-  // Resolve 0x input -> known Binance symbol, or fail honestly.
+  // Resolve 0x input -> known symbol, or fail honestly.
   let symbolId = id;
   let address: string | null = null;
   if (isAddress(id)) {
     const sym = BASE_ADDR_SYMBOL[id.toLowerCase()];
     if (!sym) {
-      notes.push(`Binance does not quote contract addresses. For "${id}" use a symbol (e.g. ETH, BTC) or a known Base address.`);
-      return { id, address, vs, price: 0, change_24h: null, source: "binance", as_of: now, ok: false, notes };
+      notes.push(`Public exchanges do not quote contract addresses. For "${id}" use a symbol (e.g. ETH, BTC) or a known Base address.`);
+      return { id, address, vs, price: 0, change_24h: null, source: "", as_of: now, ok: false, notes };
     }
     symbolId = sym;
     address = id;
-    notes.push(`Known Base address resolved to ${sym}; quote via Binance ${sym}USDT.`);
+    notes.push(`Known Base address resolved to ${sym}; quote from exchange feeds.`);
   }
 
-  const pair = `${symbolId.toUpperCase()}USDT`;
-
-  // Single source: Binance public 24h ticker (free, no key, no rate limit).
-  const tick = await binanceTicker(pair);
-  if (!tick) {
-    notes.push(`No Binance quote for "${symbolId}" (pair ${pair}). Try another symbol (e.g. BTC, ETH, SOL, USDC) or a Base address.`);
-    return { id, address, vs, price: 0, change_24h: null, source: "binance", as_of: now, ok: false, notes };
+  // Try sources in order; first valid price wins.
+  for (const src of sourcesFor(symbolId)) {
+    const j = await fetchJson(src.url);
+    if (!j) {
+      notes.push(`${src.name}: no response`);
+      continue;
+    }
+    const parsed = src.parse(j);
+    if (!parsed) {
+      notes.push(`${src.name}: empty/unknown for "${symbolId}"`);
+      continue;
+    }
+    if (vs === "USDT") notes.push("Exchange quotes USDT pairs; 1 USDT ≈ $1.");
+    else if (vs !== "USD") notes.push(`Only USD/USDT supported; showing USD value as ${vs}.`);
+    return {
+      id,
+      address,
+      vs,
+      price: parsed.price,
+      change_24h: parsed.change24h,
+      source: src.name,
+      as_of: now,
+      ok: true,
+      notes,
+    };
   }
 
-  const price = tick.price;
-  const change_24h = tick.change24h;
-  if (vs === "USDT") {
-    notes.push("Binance quotes USDT pairs; 1 USDT ≈ $1.");
-  } else if (vs !== "USD") {
-    notes.push(`Only USD/USDT supported; showing USDT value as ${vs}.`);
-  }
-
-  return {
-    id,
-    address,
-    vs,
-    price,
-    change_24h,
-    source: "binance",
-    as_of: now,
-    ok: true,
-    notes,
-  };
+  notes.push(`All feeds failed for "${symbolId}". Try another symbol (e.g. BTC, ETH, SOL, USDC) or a Base address.`);
+  return { id, address, vs, price: 0, change_24h: null, source: "exchange", as_of: now, ok: false, notes };
 }
