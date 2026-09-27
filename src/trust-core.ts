@@ -60,8 +60,8 @@ const DEFAULT_LOOKBACK_BLOCKS = 90 * BLOCKS_PER_DAY;
 let latestBlockCache: { block: number; at: number } | null = null;
 const transferCache = new Map<string, { at: number; data: RawTransfer[] }>();
 const LATEST_TTL_MS = 30_000;
-const TRANSFER_TTL_MS = 5 * 60_000;
-const CACHE_MAX_ENTRIES = 200;
+const TRANSFER_TTL_MS = 30_000;  // 30s — fresh payments show up fast
+const CACHE_MAX_ENTRIES = 500;
 
 async function getLatestBlock(alchemyUrl: string): Promise<number> {
   if (latestBlockCache && Date.now() - latestBlockCache.at < LATEST_TTL_MS) {

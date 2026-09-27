@@ -368,7 +368,7 @@ export const TOOLS: Record<string, ToolPricing> = {
   "x-search": {
     path: "/api/x-search",
     priceUsd: 0.001,
-    description: "Recent X/Twitter mentions and news by keyword — agent launches, token drama, AI agent incidents.",
+    description: "Recent X/Twitter posts by CONCRETE query (project name, token ticker, handle like elonmusk). FREE via POST /api/x-search/lookup (no payment). Paid agents: POST /api/x-search ($0.001). Empty items [] is NORMAL for generic queries — Google News indexes only some X posts. Use hn-news + ai-incidents as base, x-search as optional enrichment.",
     icon: "✕",
     freeForHumans: true,
     category: "news",

@@ -57,7 +57,7 @@ export async function getHubStats(
     return statsCache.data;
   }
 
-  const receipts = await getReceipts(alchemyUrl, payTo, "in", 200);
+  const receipts = await getReceipts(alchemyUrl, payTo, "in", 500);
 
   let externalPayments = 0;
   let externalVolume = 0;
