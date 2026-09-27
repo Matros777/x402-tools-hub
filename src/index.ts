@@ -72,7 +72,9 @@ import { recordCall, snapshot as telemetrySnapshot, TELEMETRY_HEADER } from "./t
 import { statusPage } from "./web/status";
 import { docsPage } from "./web/docs";
 import { hnNewsPage, xSearchPage, aiIncidentsPage } from "./web/tools/agent-news";
+import { generateImagePage } from "./web/tools/generate-image";
 import { fetchHnNews, fetchGoogleNews, fetchAiIncidents, fetchXSearch } from "./agent-news-core";
+import { generateImage, IMAGE_SIZES, IMAGE_STYLES } from "./image-core";
 
 export interface Env {
   X402_NETWORK?: string;
@@ -187,6 +189,7 @@ const TOOL_PAGES: Record<string, (cfg: ReturnType<typeof getConfig>) => string> 
   "hn-news": hnNewsPage,
   "x-search": xSearchPage,
   "ai-incidents": aiIncidentsPage,
+  "generate-image": generateImagePage,
 };
 
 app.get("/tools/:name", (c) => {
@@ -1792,6 +1795,46 @@ app.post("/api/ai-incidents", async (c) => {
   } catch (e) {
     console.error("ai-incidents error:", e);
     return c.json({ ok: false, error: "incidents_failed" }, 502);
+  }
+});
+
+/* ------------------------------------------------------------------ */
+/*  Image generation (generate-image / 37th tool)                      */
+/* ------------------------------------------------------------------ */
+
+// Free lookup: text-to-image via ASI:One (web form for humans).
+app.post("/api/generate-image/lookup", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const prompt = body.prompt === undefined ? "" : String(body.prompt).slice(0, 2000);
+  if (!prompt.trim()) return c.json({ ok: false, error: "prompt_required" }, 400);
+  const size = IMAGE_SIZES.includes(body.size) ? body.size : "1024x1024";
+  const style = IMAGE_STYLES.includes(body.style) ? body.style : "none";
+  const key = c.env.ASI_ONE_API_KEY;
+  if (!key) return c.json({ ok: false, error: "asi_key_missing" }, 503);
+  try {
+    const res = await generateImage(key, prompt, size, style);
+    return c.json(res, res.ok ? 200 : 502);
+  } catch (e) {
+    console.error("generate-image lookup error:", e);
+    return c.json({ ok: false, error: "gen_failed" }, 502);
+  }
+});
+
+// Paid tier: text-to-image — same payload as the free lookup.
+app.post("/api/generate-image", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const prompt = body.prompt === undefined ? "" : String(body.prompt).slice(0, 2000);
+  if (!prompt.trim()) return c.json({ ok: false, error: "prompt_required" }, 400);
+  const size = IMAGE_SIZES.includes(body.size) ? body.size : "1024x1024";
+  const style = IMAGE_STYLES.includes(body.style) ? body.style : "none";
+  const key = c.env.ASI_ONE_API_KEY;
+  if (!key) return c.json({ ok: false, error: "asi_key_missing" }, 503);
+  try {
+    const res = await generateImage(key, prompt, size, style);
+    return c.json(res, res.ok ? 200 : 502);
+  } catch (e) {
+    console.error("generate-image error:", e);
+    return c.json({ ok: false, error: "gen_failed" }, 502);
   }
 });
 

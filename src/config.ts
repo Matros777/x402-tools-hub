@@ -379,6 +379,14 @@ export const TOOLS: Record<string, ToolPricing> = {
     freeForHumans: true,
     category: "news",
   },
+  "generate-image": {
+    path: "/api/generate-image",
+    priceUsd: 0.01,
+    description: "Text-to-image generation via ASI:One (asi1). Prompt + aspect ratio + style preset -> JPEG image. Free web form for humans, paid API for agents.",
+    icon: "🎨",
+    freeForHumans: true,
+    category: "ai",
+  },
 };
 
 /** Payment + network configuration (values come from worker env vars). */
