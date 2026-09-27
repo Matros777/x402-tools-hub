@@ -29,6 +29,7 @@ export const CATEGORY_ORDER = [
   "security",
   "seo",
   "news",
+  "image",
 ] as const;
 
 export type ToolCategory = (typeof CATEGORY_ORDER)[number];
@@ -51,6 +52,7 @@ export const CATEGORY_LABELS: Record<ToolCategory, string> = {
   security: "Security",
   seo: "SEO / Meta",
   news: "News / Social",
+  image: "Image Generation",
 };
 
 export interface ToolPricing {
@@ -385,7 +387,7 @@ export const TOOLS: Record<string, ToolPricing> = {
     description: "Text-to-image generation via ASI:One (asi1). Prompt + aspect ratio + style preset -> JPEG image. Free web form for humans, paid API for agents.",
     icon: "🎨",
     freeForHumans: true,
-    category: "ai",
+    category: "image",
   },
 };
 
