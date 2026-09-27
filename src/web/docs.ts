@@ -895,11 +895,13 @@ export function docsPage(cfg: AppConfig): string {
     showToast._t = setTimeout(function () { toast.style.opacity = '0'; }, 1600);
   }
   function extractText(block) {
-    var node = block.cloneNode(true);
-    node.querySelectorAll('.c-dim, .c-com, .c-str').forEach(function (el) { el.remove(); });
-    var text = node.textContent || '';
-    // strip leading prompt markers and comments-only lines
-    return text.replace(/^\$\\s*/gm, '').trim() + '\\n';
+    var text = block.textContent || '';
+    // Remove leading prompt markers ($, PS>) and comment lines, keep real commands.
+    var lines = text.split('\n').map(function (ln) {
+      var t = ln.replace(/^\s*[>\$#]\s*/, '').trim();
+      return t;
+    }).filter(function (t) { return t.length > 0 && t.indexOf('✓') !== 0; });
+    return lines.join('\n') + '\n';
   }
   blocks.forEach(function (block) {
     block.style.cursor = 'pointer';
