@@ -22,6 +22,7 @@ export interface NewsItem {
 
 const HN_SEARCH = "https://hn.algolia.com/api/v1/search";
 const GOOGLE_NEWS = "https://news.google.com/rss/search";
+const BING_NEWS = "https://www.bing.com/news/search";
 
 function clampInt(v: unknown, def: number, max: number): number {
   const n = Number(v);
@@ -76,6 +77,55 @@ export async function fetchHnNews(
       comments: typeof h.num_comments === "number" ? h.num_comments : undefined,
       published: typeof h.created_at === "string" ? h.created_at : undefined,
     }));
+}
+
+/** Bing News RSS search — returns recent articles. Works from datacenter (Cloudflare Worker), unlike Google News. */
+export async function fetchBingNews(
+  query: string,
+  opts: { limit?: number } = {}
+): Promise<NewsItem[]> {
+  const limit = clampInt(opts.limit, 8, 20);
+  const url = `${BING_NEWS}?q=${encodeURIComponent(query)}&format=rss`;
+  const r = await fetch(url, {
+    headers: {
+      "user-agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      accept: "application/rss+xml, application/xml;q=0.9, */*;q=0.8",
+    },
+  });
+  if (!r.ok) throw new Error(`bing_${r.status}`);
+  const xml = await r.text();
+  const items: NewsItem[] = [];
+  const itemRe = /<item>([\s\S]*?)<\/item>/g;
+  let m: RegExpExecArray | null;
+  while ((m = itemRe.exec(xml)) !== null && items.length < limit) {
+    const block = m[1] ?? "";
+    const pick = (tag: string): string => {
+      const t = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i").exec(block);
+      return t ? cleanHtml(t[1] ?? "") : "";
+    };
+    const title = pick("title");
+    if (!title) continue;
+    let linkRaw = pick("link");
+    // Bing wraps the real URL in apiclick.aspx?url=<encoded> — unwrap it.
+    const mUrl = /[?&]url=([^&]+)/i.exec(linkRaw);
+    if (mUrl && mUrl[1]) {
+      try {
+        const decoded = decodeURIComponent(mUrl[1]);
+        if (/^https?:\/\//i.test(decoded)) linkRaw = decoded;
+      } catch {
+        // keep original
+      }
+    }
+    const sourceRaw = pick("news:source") || pick("source");
+    items.push({
+      title,
+      url: linkRaw,
+      source: sourceRaw || "Bing News",
+      published: pick("pubDate") || undefined,
+    });
+  }
+  return items;
 }
 
 /** Google News RSS search — returns recent articles. */
@@ -136,13 +186,13 @@ export async function fetchXSearch(
   const q = query.trim();
   if (!q) return [];
 
-  // 1) posts from X itself
+  // 1) Bing News: works from Cloudflare Worker (datacenter), returns real X posts.
   const siteQuery = `${q} (site:x.com OR site:twitter.com)`;
-  let items = await fetchGoogleNews(siteQuery, { limit }).catch(() => []);
+  let items = await fetchBingNews(siteQuery, { limit }).catch(() => []);
   if (items.length >= limit) return items.slice(0, limit);
 
-  // 2) fallback: plain news mentions
-  const plain = await fetchGoogleNews(q, { limit }).catch(() => []);
+  // 2) fallback: Bing plain query
+  const plain = await fetchBingNews(q, { limit }).catch(() => []);
   const seen = new Set<string>();
   const out: NewsItem[] = [];
   for (const it of [...items, ...plain]) {
