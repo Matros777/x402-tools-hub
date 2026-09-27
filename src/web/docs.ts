@@ -875,8 +875,6 @@ export function docsPage(cfg: AppConfig): string {
 
 <script>
 (function () {
-  // One-click copy: click any command block to copy its text.
-  var blocks = document.querySelectorAll('.terminal-body code, .doc-code pre code, .terminal pre code');
   var toast = null;
   function showToast(msg) {
     if (!toast) {
@@ -894,31 +892,12 @@ export function docsPage(cfg: AppConfig): string {
     clearTimeout(showToast._t);
     showToast._t = setTimeout(function () { toast.style.opacity = '0'; }, 1600);
   }
-  function extractText(block) {
-    var text = block.textContent || '';
-    // Remove leading prompt markers ($, PS>) and comment lines, keep real commands.
-    var lines = text.split('\\n').map(function (ln) {
-      var t = ln.replace(/^\\s*[>\\$#]\\s*/, '').trim();
-      return t;
-    }).filter(function (t) { return t.length > 0 && t.indexOf('✓') !== 0; });
-    return lines.join('\\n') + '\\n';
+  function copyText(text) {
+    var done = function () { showToast('✓ Copied'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+    } else { fallbackCopy(text); done(); }
   }
-  blocks.forEach(function (block) {
-    block.style.cursor = 'pointer';
-    block.title = 'Click to copy';
-    block.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      var text = extractText(block);
-      var done = function () { showToast('✓ Copied'); };
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
-      } else {
-        fallbackCopy(text);
-        done();
-      }
-    });
-  });
   function fallbackCopy(text) {
     var ta = document.createElement('textarea');
     ta.value = text;
@@ -930,6 +909,48 @@ export function docsPage(cfg: AppConfig): string {
     try { document.execCommand('copy'); } catch (e) {}
     document.body.removeChild(ta);
   }
+  function lineText(lh) {
+    var tmp = document.createElement('div');
+    tmp.innerHTML = lh;
+    return (tmp.textContent || '').trim();
+  }
+  function cleanLine(t) {
+    return t.replace(/^\\s*(?:[>$#]|PS>)\\s*/, '').trim();
+  }
+  document.querySelectorAll('.doc-code pre code').forEach(function (block) {
+    block.style.cursor = 'pointer';
+    block.title = 'Click to copy';
+    block.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      copyText(block.textContent || '');
+    });
+  });
+  document.querySelectorAll('.terminal-body code').forEach(function (block) {
+    var html = block.innerHTML;
+    var rawLines = html.split('\\n');
+    var out = [];
+    for (var i = 0; i < rawLines.length; i++) {
+      var lh = rawLines[i];
+      var txt = lineText(lh);
+      var isComment = /^#/.test(txt.trim());
+      var isBlank = txt.trim() === '';
+      var clean = isComment || isBlank ? '' : cleanLine(txt);
+      if (clean) {
+        out.push('<span class="cmd-copy" title="Click to copy">' + lh + '</span>');
+      } else {
+        out.push(lh);
+      }
+    }
+    block.innerHTML = out.join('\\n');
+    block.querySelectorAll('.cmd-copy').forEach(function (sp) {
+      sp.style.cursor = 'pointer';
+      sp.title = 'Click to copy';
+      sp.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        copyText(cleanLine(sp.textContent || ''));
+      });
+    });
+  });
 })();
 </script>
 
