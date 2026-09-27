@@ -743,15 +743,83 @@ export function docsPage(cfg: AppConfig): string {
     </div>
   </section>
 
+  <section class="docs-section" id="awal-setup">
+    <h2>2 · Get the awal wallet (5 minutes)</h2>
+    <p>
+      To call paid endpoints you need the <b>awal</b> wallet CLI. It holds USDC on Base,
+      signs x402 micropayments automatically, and works on Linux, macOS and Windows
+      (Node.js 18+ required). It is the same tool AI agents use to pay.
+    </p>
+
+    <h3 style="font-size:16px;margin:18px 0 6px">Step 1 — Install</h3>
+    <div class="terminal">
+      <div class="terminal-bar"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span><span class="terminal-title">install</span></div>
+      <pre class="terminal-body"><code><span class="c-dim"># Linux / macOS</span>
+<span class="c-dim">$</span> npm install -g awal
+
+<span class="c-dim"># Windows (PowerShell, run as admin)</span>
+<span class="c-dim">PS&gt;</span> npm install -g awal
+
+<span class="c-dim"># Check it works</span>
+<span class="c-dim">$</span> npx awal --version</code></pre>
+    </div>
+
+    <h3 style="font-size:16px;margin:18px 0 6px">Step 2 — Sign in (email code)</h3>
+    <div class="terminal">
+      <div class="terminal-bar"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span><span class="terminal-title">auth</span></div>
+      <pre class="terminal-body"><code><span class="c-dim">$</span> npx awal auth login you@email.com
+<span class="c-dim"># a 6-digit code is emailed to you</span>
+<span class="c-dim">$</span> npx awal auth verify 123456
+<span class="c-dim">✓ Authenticated</span></code></pre>
+    </div>
+
+    <h3 style="font-size:16px;margin:18px 0 6px">Step 3 — See your address &amp; balance</h3>
+    <div class="terminal">
+      <div class="terminal-bar"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span><span class="terminal-title">wallet</span></div>
+      <pre class="terminal-body"><code><span class="c-dim">$</span> npx awal address
+<span class="c-dim">EVM (Base): 0x998d...Ca103</span>
+<span class="c-dim">Solana:     3XEQ...</span>
+
+<span class="c-dim">$</span> npx awal balance
+<span class="c-dim">Base</span>
+<span class="c-dim">────────────────────────</span>
+<span class="c-dim">USDC    0.014068</span>
+<span class="c-dim">ETH     0.000042</span></code></pre>
+    </div>
+
+    <h3 style="font-size:16px;margin:18px 0 6px">Step 4 — Top up (USDC on Base)</h3>
+    <p>
+      Send <b>USDC (Base)</b> to your EVM address from any exchange or wallet that
+      supports Base network (Coinbase, Binance, Uniswap…). $1–$2 is enough for
+      hundreds of calls (most tools cost $0.0005–$0.003). The address is
+      <code>0x998da3D1f0B6F510cd629bf26e7AeCA08F4cA103</code>.
+    </p>
+
+    <h3 style="font-size:16px;margin:18px 0 6px">For AI agents (OpenClaw, Claude, LangChain…)</h3>
+    <p>
+      The awal wallet is exactly what autonomous agents use to pay per call. You can
+      install it on the same machine that runs your agent — in OpenClaw, for example,
+      you can just ask the agent in chat to install and configure awal, then give it
+      the paid API commands from this page. The agent will call
+      <code>npx awal x402 pay &lt;url&gt; -X POST -d '{"...":"..."}'</code> itself,
+      sign the micropayment, and receive the data.
+    </p>
+    <div class="doc-note">
+      <b>Tip:</b> keep a small balance ($1–5). If a call returns
+      <code>402 Payment Required</code>, it means the payment didn't settle — check
+      <code>npx awal status</code> and your USDC balance.
+    </div>
+  </section>
+
   <section class="docs-section" id="catalog">
-    <h2>2 · Full tool catalog — all ${count} tools</h2>
+    <h2>3 · Full tool catalog — all ${count} tools</h2>
     <p>Every tool as a numbered list row: description, API price, endpoint, example request and response.</p>
     ${tocMarkup()}
     ${catalogMarkup()}
   </section>
 
   <section class="docs-section" id="discovery">
-    <h2>3 · Machine-readable discovery</h2>
+    <h2>4 · Machine-readable discovery</h2>
     <p>Agents and directories can consume the hub without scraping HTML:</p>
     <ul class="guide-steps">
       <li><code><a href="/api/list">/api/list</a></code> — full tool catalog (name, path, price, description, free_for_humans).</li>
