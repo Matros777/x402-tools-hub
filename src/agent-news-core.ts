@@ -52,7 +52,13 @@ export async function fetchHnNews(
   const url =
     `${HN_SEARCH}?query=${encodeURIComponent(query)}` +
     `&tags=${encodeURIComponent(tags)}&hitsPerPage=${limit}&numericFilters=points%3E=3`;
-  const r = await fetch(url, { headers: { "user-agent": "x402-tools-hub/1.0" } });
+  const r = await fetch(url, {
+    headers: {
+      "user-agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      accept: "application/rss+xml, application/xml;q=0.9, */*;q=0.8",
+    },
+  });
   if (!r.ok) throw new Error(`hn_search_${r.status}`);
   const j = (await r.json()) as { hits?: Array<Record<string, unknown>> };
   if (!Array.isArray(j.hits)) return [];
@@ -83,7 +89,13 @@ export async function fetchGoogleNews(
   const url =
     `${GOOGLE_NEWS}?q=${encodeURIComponent(query)}` +
     `&hl=${encodeURIComponent(lang)}&gl=${encodeURIComponent(country)}&ceid=${encodeURIComponent(country + ":" + lang.split("-")[0])}`;
-  const r = await fetch(url, { headers: { "user-agent": "x402-tools-hub/1.0" } });
+  const r = await fetch(url, {
+    headers: {
+      "user-agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      accept: "application/rss+xml, application/xml;q=0.9, */*;q=0.8",
+    },
+  });
   if (!r.ok) throw new Error(`gnews_${r.status}`);
   const xml = await r.text();
 
