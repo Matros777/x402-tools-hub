@@ -873,6 +873,64 @@ export function docsPage(cfg: AppConfig): string {
   <div class="footer-copy">payments on ${esc(cfg.network)} · x402 protocol</div>
 </footer>
 
+<script>
+(function () {
+  // One-click copy: click any command block to copy its text.
+  var blocks = document.querySelectorAll('.terminal-body code, .doc-code pre code, .terminal pre code');
+  var toast = null;
+  function showToast(msg) {
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'copy-toast';
+      toast.setAttribute('style',
+        'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;' +
+        'background:#0e2b24;color:#4adea6;border:1px solid #16e0a0;border-radius:999px;' +
+        'padding:10px 22px;font-family:monospace;font-size:14px;box-shadow:0 8px 30px rgba(0,0,0,.5);' +
+        'opacity:0;transition:opacity .25s;pointer-events:none;');
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.opacity = '1';
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function () { toast.style.opacity = '0'; }, 1600);
+  }
+  function extractText(block) {
+    var node = block.cloneNode(true);
+    node.querySelectorAll('.c-dim, .c-com, .c-str').forEach(function (el) { el.remove(); });
+    var text = node.textContent || '';
+    // strip leading prompt markers and comments-only lines
+    return text.replace(/^\$\s*/gm, '').trim() + '\n';
+  }
+  blocks.forEach(function (block) {
+    block.style.cursor = 'pointer';
+    block.title = 'Click to copy';
+    block.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var text = extractText(block);
+      var done = function () { showToast('✓ Copied'); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+      } else {
+        fallbackCopy(text);
+        done();
+      }
+    });
+  });
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'absolute';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+})();
+</script>
+
 </body>
 </html>`;
 }
