@@ -40,7 +40,9 @@ function usd(v: number): string {
  */
 const EXAMPLES: Record<string, { req: string; res?: string }> = {
   "token-inspector": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/token-inspector \\
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/token-inspector \
+  -X POST \
   -d '{"address":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913","chain":"base"}'`,
     res: `{
   "ok": true,
@@ -59,7 +61,9 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "token-quote": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/token-quote \\
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/token-quote \
+  -X POST \
   -d '{"id":"ETH","vs":"USD"}'`,
     res: `{
   "ok": true,
@@ -74,7 +78,9 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "wallet-intel": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/wallet-intel \\
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/wallet-intel \
+  -X POST \
   -d '{"address":"0x998da3d1f0b6f510cd629bf26e7aeca08f4ca103"}'`,
     res: `{
   "ok": true,
@@ -92,7 +98,9 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "agent-passport": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/agent-passport \\
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/agent-passport \
+  -X POST \
   -d '{"address":"0x998da3d1f0b6f510cd629bf26e7aeca08f4ca103"}'`,
     res: `{
   "ok": true,
@@ -108,7 +116,10 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "base-gas": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/base-gas -d '{}'`,
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/base-gas \
+  -X POST \
+  -d '{}'`,
     res: `{
   "ok": true,
   "gas": {
@@ -123,7 +134,9 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "address-toolkit": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/address-toolkit \\
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/address-toolkit \
+  -X POST \
   -d '{"address":"0x998da3d1f0b6f510cd629bf26e7aeca08f4ca103"}'`,
     res: `{
   "ok": true,
@@ -137,7 +150,9 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "flight-recorder": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/flight-recorder \\
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/flight-recorder \
+  -X POST \
   -d '{"address":"0x5b7efd37546d6bb02463339ceaddd80997ac97b3","direction":"in","limit":20}'`,
     res: `{
   "ok": true,
@@ -152,7 +167,9 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "merchant-trust": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/merchant-trust \\
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/merchant-trust \
+  -X POST \
   -d '{"address":"0x5b7efd37546d6bb02463339ceaddd80997ac97b3"}'`,
     res: `{
   "ok": true,
@@ -166,7 +183,9 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "agent-registry": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/agent-registry \\
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/agent-registry \
+  -X POST \
   -d '{"seed":"0x5b7efd37546d6bb02463339ceaddd80997ac97b3","hops":1}'`,
     res: `{
   "ok": true,
@@ -181,7 +200,9 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "402-probe": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/402-probe \\
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/402-probe \
+  -X POST \
   -d '{"url":"https://example.com/api/foo"}'`,
     res: `{
   "ok": true,
@@ -197,7 +218,9 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "well-known": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/well-known \\
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/well-known \
+  -X POST \
   -d '{"origin":"https://example.com"}'`,
     res: `{
   "ok": true,
@@ -210,7 +233,9 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "agent-health": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/agent-health \\
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/agent-health \
+  -X POST \
   -d '{"url":"https://x402-tools-hub.ivanbenks7-e96.workers.dev"}'`,
     res: `{
   "ok": true,
@@ -223,7 +248,9 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "payment-decoder": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/payment-decoder \\
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/payment-decoder \
+  -X POST \
   -d '{"header":"PAYMENT-REQUIRED raw value"}'`,
     res: `{
   "ok": true,
@@ -236,7 +263,9 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "receipt-notary": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/receipt-notary \\
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/receipt-notary \
+  -X POST \
   -d '{"resource":"/api/token-inspector","tx":"0xabc...","body":"..."}'`,
     res: `{
   "ok": true,
@@ -249,7 +278,9 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "web-markdown": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/web-markdown \\
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/web-markdown \
+  -X POST \
   -d '{"url":"https://example.com"}'`,
     res: `{
   "ok": true,
@@ -260,7 +291,9 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "url-metadata": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/url-metadata \\
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/url-metadata \
+  -X POST \
   -d '{"url":"https://example.com"}'`,
     res: `{
   "ok": true,
@@ -273,7 +306,9 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "json-studio": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/json-studio \\
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/json-studio \
+  -X POST \
   -d '{"json":"{\\"a\\": 1, \\"b\\": 2}","mode":"minify"}'`,
     res: `{
   "ok": true,
@@ -281,7 +316,9 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "token-counter": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/token-counter \\
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/token-counter \
+  -X POST \
   -d '{"text":"Hello world","model":"gpt-4o"}'`,
     res: `{
   "ok": true,
@@ -293,7 +330,9 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "hn-news": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/hn-news \
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/hn-news \
+  -X POST \
   -d '{"query":"AI agents","limit":5}'`,
     res: `{
   "ok": true,
@@ -335,7 +374,9 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "ai-incidents": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/ai-incidents \
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/ai-incidents \
+  -X POST \
   -d '{"limit":5}'`,
     res: `{
   "ok": true,
