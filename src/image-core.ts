@@ -228,7 +228,12 @@ export async function generateImageHosted(
   }
   const url = await uploadToLitterbox(bytes, res.mime ?? "image/jpeg");
   if (!url) {
-    return { ok: false, error: "hosting_failed" };
+    // Litterbox may be blocked from the Worker datacenter. Never fail a paid
+    // request because of hosting: fall back to a data URL so the payer gets
+    // the image bytes. URL fields are still present (data URL) for download.
+    const mime = res.mime ?? "image/jpeg";
+    const dataUrl = "data:" + mime + ";base64," + res.image;
+    return buildHostedResult({ ok: true, url: dataUrl, mime, size, style, prompt, id: res.id });
   }
   return buildHostedResult({ ok: true, url, mime: res.mime ?? "image/jpeg", size, style, prompt, id: res.id });
 }
@@ -257,7 +262,7 @@ function buildHostedResult(p: {
     download_url: p.url,
     download: dl,
     message:
-      "✓ Payment successful — $0.01 USDC\n" +
+      "✓ Payment successful — $0.003 USDC\n" +
       "✓ Image generated (" + w + "x" + h + ", " + mimeLabel + ")\n\n" +
       "🖼️ IMAGE\n" +
       p.url +

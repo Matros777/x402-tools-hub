@@ -407,7 +407,7 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
   "image_url": "https://litter.catbox.moe/xxxx.jpg",
   "download_url": "https://litter.catbox.moe/xxxx.jpg",
   "download": "curl -L \"https://litter.catbox.moe/xxxx.jpg\" -o generated-image.jpg",
-  "message": "✓ Payment successful — $0.01 USDC\n✓ Image generated (1024x1024, JPEG)\n\n🖼️ IMAGE\nhttps://litter.catbox.moe/xxxx.jpg\n\n⬇ Download:\ncurl -L \"...\" -o generated-image.jpg\n\n📐 1024 × 1024\n🎨 JPEG"
+  "message": "✓ Payment successful — $0.003 USDC\n✓ Image generated (1024x1024, JPEG)\n\n🖼️ IMAGE\nhttps://litter.catbox.moe/xxxx.jpg\n\n⬇ Download:\ncurl -L \"...\" -o generated-image.jpg\n\n📐 1024 × 1024\n🎨 JPEG"
 }`,
   },
 };

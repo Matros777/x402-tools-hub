@@ -383,7 +383,7 @@ export const TOOLS: Record<string, ToolPricing> = {
   },
   "generate-image": {
     path: "/api/generate-image",
-    priceUsd: 0.01,
+    priceUsd: 0.003,
     description: "Text-to-image generation via ASI:One (asi1). Prompt + aspect ratio + style preset -> JPEG image. Free web form for humans, paid API for agents.",
     icon: "🎨",
     freeForHumans: true,

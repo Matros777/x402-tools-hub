@@ -1,7 +1,7 @@
 /**
  * x402 Tools Hub — Image Generator tool page
  * Free web form for humans: prompt + size + style -> generated image.
- * Agents use the paid POST /api/generate-image endpoint ($0.01).
+ * Agents use the paid POST /api/generate-image endpoint ($0.003).
  */
 
 import { renderToolPage } from "../tool-page";
@@ -121,7 +121,7 @@ export function generateImagePage(cfg: AppConfig): string {
       'Pick an aspect ratio: 1:1 square, 16:9 landscape or 9:16 portrait.',
       "Pick a style preset — photorealistic, cinematic, anime, 3D, watercolor, oil, cyberpunk or minimal.",
       'Hit Generate — the image appears below and can be downloaded.',
-      "Agents call the paid POST /api/generate-image endpoint ($0.01 per image).",
+      "Agents call the paid POST /api/generate-image endpoint ($0.003 per image).",
     ],
     useCases: [
       "Cover images and banners for agent projects or docs.",
