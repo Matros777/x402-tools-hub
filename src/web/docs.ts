@@ -342,6 +342,25 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
   ]
 }`,
   },
+  "generate-image": {
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/generate-image \
+  -X POST \
+  -d '{"prompt":"A futuristic AI agent standing in a dark cyberpunk data center, glowing cyan and violet neural networks, cinematic lighting, highly detailed, square composition","aspect_ratio":"1:1","style":"cinematic"}'`,
+    res: `{
+  "ok": true,
+  "type": "image",
+  "mime_type": "image/jpeg",
+  "width": 1024,
+  "height": 1024,
+  "style": "cinematic",
+  "prompt": "A futuristic AI agent standing in a dark cyberpunk data center...",
+  "image_url": "https://litter.catbox.moe/xxxx.jpg",
+  "download_url": "https://litter.catbox.moe/xxxx.jpg",
+  "download": "curl -L \"https://litter.catbox.moe/xxxx.jpg\" -o generated-image.jpg",
+  "message": "✓ Payment successful — $0.01 USDC\n✓ Image generated (1024x1024, JPEG)\n\n🖼️ IMAGE\nhttps://litter.catbox.moe/xxxx.jpg\n\n⬇ Download:\ncurl -L \"...\" -o generated-image.jpg\n\n📐 1024 × 1024\n🎨 JPEG"
+}`,
+  },
 };
 
 /** Build one tool LIST ROW: number, name, price, endpoint + collapsible examples. */
