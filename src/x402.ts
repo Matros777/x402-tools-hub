@@ -132,7 +132,11 @@ async function verifyAndSettle(facilitatorUrl: string, paymentHeader: string, re
     const v = await fetch(`${facilitatorUrl}/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paymentPayload: paymentData, paymentRequirements: requirements }),
+      body: JSON.stringify({
+        x402Version: 2,
+        paymentPayload: paymentData,
+        paymentRequirements: requirements,
+      }),
     });
     if (!v.ok) return false;
     const vd: any = await v.json();
@@ -141,7 +145,11 @@ async function verifyAndSettle(facilitatorUrl: string, paymentHeader: string, re
     const s = await fetch(`${facilitatorUrl}/settle`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paymentPayload: paymentData, paymentRequirements: requirements }),
+      body: JSON.stringify({
+        x402Version: 2,
+        paymentPayload: paymentData,
+        paymentRequirements: requirements,
+      }),
     });
     return s.ok;
   } catch {

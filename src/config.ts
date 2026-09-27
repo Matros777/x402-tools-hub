@@ -415,7 +415,7 @@ export interface AppConfig {
 export function getConfig(env: Record<string, string | undefined>): AppConfig {
   return {
     network: env.X402_NETWORK ?? "base",
-    facilitatorUrl: env.X402_FACILITATOR_URL ?? "https://x402.org/facilitator",
+    facilitatorUrl: env.X402_FACILITATOR_URL ?? "https://facilitator.xpay.sh",
     payTo: env.X402_PAY_TO,
     siteName: env.SITE_NAME ?? "x402 Tools Hub",
     // Fallback: the platform's own deploy domain (Cloudflare workers.dev).
