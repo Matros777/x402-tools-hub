@@ -311,17 +311,25 @@ const EXAMPLES: Record<string, { req: string; res?: string }> = {
 }`,
   },
   "x-search": {
-    req: `curl -X POST https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/x-search \
-  -d '{"query":"x402 micropayments","limit":5}'`,
+    req: `npx awal x402 pay \
+  https://x402-tools-hub.ivanbenks7-e96.workers.dev/api/x-search \
+  -X POST \
+  -d '{"query":"elonmusk","limit":5}'`,
     res: `{
   "ok": true,
-  "query": "x402 micropayments (twitter OR x)",
+  "query": "elonmusk",
   "items": [
     {
-      "title": "AI agents now pay per API call on Base via x402",
-      "url": "https://news.google.com/rss/articles/...",
-      "source": "CoinDesk",
-      "published": "Fri, 25 Sep 2026 12:00:00 GMT"
+      "title": "Elon Musk on X: \"This is the way\"",
+      "url": "https://x.com/elonmusk/status/2099737081756930206",
+      "source": "X",
+      "published": "Mon, 14 Sep 2026 22:49:00 GMT"
+    },
+    {
+      "title": "Polymarket on X: \"JUST IN: Anthropic CEO Dario Amodei says 'for too long the industry lied' about AI risks.\"",
+      "url": "https://x.com/polymarket/status/2099256269257265622",
+      "source": "X",
+      "published": "Sun, 13 Sep 2026 07:57:00 GMT"
     }
   ]
 }`,
