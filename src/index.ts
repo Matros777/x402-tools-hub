@@ -74,7 +74,7 @@ import { docsPage } from "./web/docs";
 import { hnNewsPage, xSearchPage, aiIncidentsPage } from "./web/tools/agent-news";
 import { generateImagePage } from "./web/tools/generate-image";
 import { fetchHnNews, fetchGoogleNews, fetchAiIncidents, fetchXSearch } from "./agent-news-core";
-import { generateImage, IMAGE_SIZES, IMAGE_STYLES } from "./image-core";
+import { generateImage, generateImageHosted, IMAGE_SIZES, IMAGE_STYLES } from "./image-core";
 
 export interface Env {
   X402_NETWORK?: string;
@@ -1820,7 +1820,8 @@ app.post("/api/generate-image/lookup", async (c) => {
   }
 });
 
-// Paid tier: text-to-image — same payload as the free lookup.
+// Paid tier: text-to-image — hosted Variant B (URL + metadata + human message).
+// The web form keeps using the free /lookup endpoint (base64, rendered inline).
 app.post("/api/generate-image", async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const prompt = body.prompt === undefined ? "" : String(body.prompt).slice(0, 2000);
@@ -1830,7 +1831,7 @@ app.post("/api/generate-image", async (c) => {
   const key = c.env.ASI_ONE_API_KEY;
   if (!key) return c.json({ ok: false, error: "asi_key_missing" }, 503);
   try {
-    const res = await generateImage(key, prompt, size, style);
+    const res = await generateImageHosted(key, prompt, size, style);
     return c.json(res, res.ok ? 200 : 502);
   } catch (e) {
     console.error("generate-image error:", e);

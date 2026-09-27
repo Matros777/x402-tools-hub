@@ -166,3 +166,106 @@ export async function generateImage(
 
   return { ok: false, error: "no_image_in_response" };
 }
+
+
+/** Base64 (no prefix) -> Uint8Array bytes. */
+function base64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+/** Upload raw image bytes to litterbox.catbox.moe (public, no key) — direct image URL. */
+async function uploadToLitterbox(bytes: Uint8Array, mime: string): Promise<string | null> {
+  const ext = mime === "image/png" ? "png" : "jpg";
+  const filename = "asi1_image." + ext;
+  const form = new FormData();
+  form.append("reqtype", "fileupload");
+  form.append("time", "72h");
+  form.append("fileToUpload", new Blob([bytes.buffer as ArrayBuffer], { type: mime }), filename);
+  try {
+    const r = await fetch(
+      "https://litterbox.catbox.moe/resources/internals/api.php",
+      { method: "POST", body: form }
+    );
+    if (r.status !== 200) return null;
+    const txt = (await r.text()).trim();
+    if (txt.startsWith("https://") || txt.startsWith("http://")) return txt;
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+/**
+ * Hosted variant (Variant B — for the paid terminal/agent API):
+ * generate -> upload to litterbox -> return image_url/download_url + metadata + human message.
+ */
+export async function generateImageHosted(
+  apiKey: string,
+  prompt: string,
+  size: ImageSize = "1024x1024",
+  style: ImageStyle = "none"
+): Promise<any> {
+  const res = await generateImage(apiKey, prompt, size, style);
+  if (!res.ok || !res.image) {
+    return { ok: false, error: res.error ?? "generation_failed" };
+  }
+
+  // Direct https URL already returned by ASI -> use as-is.
+  if (res.image.startsWith("http")) {
+    const url = res.image;
+    return buildHostedResult({ ok: true, url, mime: res.mime ?? "image/*", size, style, prompt, id: res.id });
+  }
+
+  // base64 payload -> decode and host.
+  let bytes: Uint8Array;
+  try {
+    bytes = base64ToBytes(res.image);
+  } catch {
+    return { ok: false, error: "decode_failed" };
+  }
+  const url = await uploadToLitterbox(bytes, res.mime ?? "image/jpeg");
+  if (!url) {
+    return { ok: false, error: "hosting_failed" };
+  }
+  return buildHostedResult({ ok: true, url, mime: res.mime ?? "image/jpeg", size, style, prompt, id: res.id });
+}
+
+function buildHostedResult(p: {
+  ok: boolean;
+  url: string;
+  mime: string;
+  size: string;
+  style: string;
+  prompt: string;
+  id?: string;
+}): any {
+  const [w, h] = p.size.split("x").map((v) => Number(v) || 0);
+  const mimeLabel = p.mime === "image/png" ? "PNG" : "JPEG";
+  const dl = `curl -L "${p.url}" -o generated-image.${p.mime === "image/png" ? "png" : "jpg"}`;
+  return {
+    ok: true,
+    type: "image",
+    mime_type: p.mime,
+    width: w,
+    height: h,
+    style: p.style,
+    prompt: p.prompt,
+    image_url: p.url,
+    download_url: p.url,
+    download: dl,
+    message:
+      "✓ Payment successful — $0.01 USDC\n" +
+      "✓ Image generated (" + w + "x" + h + ", " + mimeLabel + ")\n\n" +
+      "🖼️ IMAGE\n" +
+      p.url +
+      "\n\n" +
+      "⬇ Download:\n" +
+      dl +
+      "\n\n" +
+      "📐 " + w + " × " + h + "\n" +
+      "🎨 " + mimeLabel,
+  };
+}
