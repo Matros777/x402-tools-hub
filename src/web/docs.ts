@@ -899,7 +899,7 @@ export function docsPage(cfg: AppConfig): string {
     node.querySelectorAll('.c-dim, .c-com, .c-str').forEach(function (el) { el.remove(); });
     var text = node.textContent || '';
     // strip leading prompt markers and comments-only lines
-    return text.replace(/^\$\s*/gm, '').trim() + '\n';
+    return text.replace(/^\$\\s*/gm, '').trim() + '\\n';
   }
   blocks.forEach(function (block) {
     block.style.cursor = 'pointer';
