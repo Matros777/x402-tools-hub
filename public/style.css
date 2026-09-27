@@ -1457,3 +1457,55 @@ section { padding: 72px 0; }
   .trust-bar { margin-bottom: 32px; }
   .trust-bar .tag { font-size: 11px; padding: 4px 10px; }
 }
+
+
+/* ------------------------------------------------------------------ */
+/*  Image Generator (generate-image tool)                              */
+/* ------------------------------------------------------------------ */
+
+.img-generating {
+  margin: 20px 0;
+  padding: 28px;
+  border: 1px dashed var(--line, rgba(127, 200, 170, 0.35));
+  border-radius: 12px;
+  color: var(--text-dim, #7a918a);
+  text-align: center;
+  font-family: var(--font-mono, monospace);
+  font-size: 14px;
+}
+
+.img-result {
+  display: block;
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  margin: 20px auto 0;
+  border-radius: 14px;
+  border: 1px solid var(--line, rgba(127, 200, 170, 0.3));
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  object-fit: cover;
+  background: #0b0f0e;
+}
+
+#img-out .news-meta {
+  margin: 10px auto 0;
+  max-width: 720px;
+  text-align: center;
+}
+
+#img-out .toolbar {
+  margin: 14px auto 0;
+  max-width: 720px;
+  justify-content: center;
+}
+
+@media (max-width: 640px) {
+  .img-result {
+    max-width: 100%;
+    border-radius: 10px;
+  }
+  .img-generating {
+    padding: 20px;
+    font-size: 13px;
+  }
+}
