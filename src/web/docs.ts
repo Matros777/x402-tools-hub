@@ -897,11 +897,11 @@ export function docsPage(cfg: AppConfig): string {
   function extractText(block) {
     var text = block.textContent || '';
     // Remove leading prompt markers ($, PS>) and comment lines, keep real commands.
-    var lines = text.split('\n').map(function (ln) {
-      var t = ln.replace(/^\s*[>\$#]\s*/, '').trim();
+    var lines = text.split('\\n').map(function (ln) {
+      var t = ln.replace(/^\\s*[>\\$#]\\s*/, '').trim();
       return t;
     }).filter(function (t) { return t.length > 0 && t.indexOf('✓') !== 0; });
-    return lines.join('\n') + '\n';
+    return lines.join('\\n') + '\\n';
   }
   blocks.forEach(function (block) {
     block.style.cursor = 'pointer';
