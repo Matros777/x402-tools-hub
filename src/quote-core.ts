@@ -159,8 +159,10 @@ async function fetchJson(url: string): Promise<any> {
   try {
     const r = await fetch(url, {
       headers: {
-        accept: "application/json",
-        "user-agent": "Mozilla/5.0 (compatible; x402-tools-hub/1.0)",
+        accept: "application/json, text/plain, */*",
+        "user-agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "accept-language": "en-US,en;q=0.9",
       },
       signal: ctrl.signal,
     });
